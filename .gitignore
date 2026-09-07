@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # Local Netlify folder
 .netlify
+
+# nametag generator working files
+.fonts-cache/
+.stl-samples/
+.tmp/
+.kakas-dev-data/

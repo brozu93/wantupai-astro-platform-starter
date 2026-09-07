@@ -1,9 +1,68 @@
 ---
+import Logo from './Logo.astro';
 
+const year = new Date().getFullYear();
+
+const columns = [
+    {
+        title: 'Perkakas',
+        links: [
+            { label: 'Penjana Nametag', href: '/apps/nametag' },
+            { label: 'Semua apps', href: '/apps' },
+            { label: 'Panduan cetakan', href: '/panduan' }
+        ]
+    },
+    {
+        title: 'Akaun',
+        links: [
+            { label: 'Harga', href: '/harga' },
+            { label: 'Semak lesen', href: '/akaun' }
+        ]
+    },
+    {
+        title: 'Rasmi',
+        links: [
+            { label: 'Terma & bayaran balik', href: '/terma' },
+            { label: 'Privasi', href: '/privasi' }
+        ]
+    }
+];
 ---
 
-<footer class="pt-16 pb-12 sm:pt-24 sm:pb-16">
-    <p class="text-sm">
-        <a href="https://docs.netlify.com/frameworks/astro/" class="decoration-dashed text-primary underline-offset-8"> Astro on Netlify </a>
-    </p>
+<footer class="mt-24 border-t border-white/10 bg-graphite-950/60">
+    <div class="mx-auto grid max-w-[1500px] gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.5fr_repeat(3,1fr)]">
+        <div>
+            <Logo height={28} />
+            <p class="mt-4 max-w-xs text-sm text-graphite-300">
+                Perkakas digital untuk kerja tangan — direka di Malaysia untuk pengguna pencetak 3D dan mesin ukir.
+            </p>
+        </div>
+
+        {
+            columns.map((column) => (
+                <div>
+                    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-graphite-400">{column.title}</h2>
+                    <ul class="space-y-2 text-sm">
+                        {column.links.map((link) => (
+                            <li>
+                                <a href={link.href} class="text-graphite-200 hover:text-brass-300">
+                                    {link.label}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ))
+        }
+    </div>
+
+    <div class="mx-auto max-w-[1500px] space-y-2 border-t border-white/10 px-5 py-6 text-xs text-graphite-400 sm:px-8">
+        <p>
+            KAKAS ialah perkhidmatan swasta dan <strong class="font-semibold text-graphite-300">tiada kaitan dengan mana-mana agensi kerajaan</strong>. Reka
+            bentuk yang dijana perlu mematuhi garis panduan pemakaian jabatan anda sendiri.
+        </p>
+        <p>
+            Bentuk huruf menggunakan Roboto dan Roboto Condensed (Apache License 2.0). © {year} KAKAS.
+        </p>
+    </div>
 </footer>

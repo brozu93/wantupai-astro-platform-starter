@@ -1,0 +1,27 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LicenceLookup from '../components/billing/LicenceLookup';
+---
+
+<Layout title="Akaun" description="Semak baki kredit, status langganan dan reka bentuk yang sudah dibeli dengan kunci lesen KAKAS anda.">
+    <section class="py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">Akaun</p>
+        <h1 class="mt-2">Semak lesen anda</h1>
+        <p class="mt-4 max-w-2xl text-graphite-300">
+            KAKAS tidak menggunakan kata laluan. Kunci lesen yang diberikan selepas pembayaran ialah akaun anda — masukkannya di bawah untuk melihat baki kredit
+            dan status langganan.
+        </p>
+
+        <div class="mt-10 max-w-2xl">
+            <LicenceLookup client:load />
+        </div>
+
+        <div class="panel mt-10 max-w-2xl p-6">
+            <h2 class="text-lg font-semibold">Kehilangan kunci?</h2>
+            <p class="mt-2 text-sm text-graphite-300">
+                Kunci dipaparkan pada halaman selepas pembayaran dan disimpan dalam pelayar yang anda gunakan ketika itu. Jika anda kehilangannya, hubungi kami
+                dengan alamat e-mel yang digunakan semasa pembayaran.
+            </p>
+        </div>
+    </section>
+</Layout>

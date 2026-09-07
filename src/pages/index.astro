@@ -1,21 +1,162 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import ContextAlert from '../components/ContextAlert.astro';
-import Markdown from '../components/Markdown.astro';
+import { PLANS, formatPrice } from '../lib/billing/plans';
 
-const explainer = `
-An Astro website can go way beyond static pages - on the right platform.
+const steps = [
+    {
+        title: 'Taip nama dan jawatan',
+        body: 'Pilih saiz yang sudah lazim dipakai — guru, penjawat awam, korporat atau pelajar — kemudian taip perkataan anda. Teks mengecil sendiri kalau nama terlalu panjang.'
+    },
+    {
+        title: 'Tetapkan kemasan dan pemasangan',
+        body: 'Teks timbul atau ukir, bingkai di tepi, poket magnet, lekuk bar peniti atau lubang tali leher. Semuanya dipotong terus dalam model.'
+    },
+    {
+        title: 'Muat turun STL dan cetak',
+        body: 'Fail STL tertutup rapat, sedia dihiris. Cetak muka ke atas, tekan magnet masuk, siap dipakai keesokan hari.'
+    }
+];
 
-Netlify supports not only [Streaming SSR](https://docs.astro.build/en/guides/server-side-rendering/#html-streaming) and fast [Edge Middleware](https://docs.astro.build/en/guides/middleware/), but also [on-demand revalidation](https://www.netlify.com/blog/cache-tags-and-purge-api-on-netlify/) and [stale-while-revalidate](https://www.netlify.com/blog/swr-and-fine-grained-cache-control/). 
-Any page or data can be rebuilt only when needed, without site visitors ever getting a performance hit.
-`;
+const features = [
+    {
+        title: 'Pratonton yang benar-benar sama',
+        body: 'Skrin dan fail STL dijana daripada kod susun atur yang sama. Apa yang anda lihat itulah yang keluar dari pencetak.'
+    },
+    {
+        title: 'Poket magnet yang muat',
+        body: 'Masukkan ukuran magnet anda dan poket dipotong dengan kelegaan yang betul supaya magnet boleh ditekan masuk, bukan dipaksa.'
+    },
+    {
+        title: 'Mesh tertutup rapat',
+        body: 'Setiap fail disemak: tiada tepi terbuka, tiada permukaan berulang, normal menghala keluar. Penghiris tidak perlu membaikinya dahulu.'
+    },
+    {
+        title: 'Petua dua warna',
+        body: 'Untuk teks timbul, kami beritahu ketinggian tepat untuk tukar filamen (M600) supaya teks berlainan warna daripada plat.'
+    },
+    {
+        title: 'Mod senarai untuk sekolah',
+        body: 'Tampal senarai nama staf sekali, dapat satu fail ZIP mengandungi semua tag. Untuk pelanggan langganan bulanan.'
+    },
+    {
+        title: 'Bayar ikut keperluan',
+        body: 'Perlukan satu tag sahaja? Bayar sekali. Buat untuk seluruh sekolah setiap bulan? Langgan. Tiada kontrak panjang.'
+    }
+];
 ---
 
-<Layout title="Welcome to Astro.">
-    <ContextAlert class="mb-4" />
-    <h1 class="mb-10">Netlify Platform Starter for Astro</h1>
-    <Markdown content={explainer} class="text-lg mb-10" />
-    <p class="mb-8">
-        <a href="https://docs.netlify.com/frameworks/astro/" class="btn btn-lg btn-primary sm:btn-wide">Read the Docs</a>
-    </p>
+<Layout title="KAKAS">
+    <section class="grid items-center gap-10 py-14 md:grid-cols-[1.15fr_1fr] md:py-20">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">Perkakas digital untuk kerja tangan</p>
+            <h1 class="mt-3 text-balance">Tag nama siap cetak, dalam masa dua minit.</h1>
+            <p class="mt-5 max-w-xl text-lg text-graphite-300">
+                KAKAS menukar nama dan jawatan anda menjadi fail STL yang betul-betul boleh dicetak — lengkap dengan poket magnet, teks timbul dan bucu bulat.
+                Direka untuk guru, penjawat awam dan pengusaha cetakan 3D di Malaysia.
+            </p>
+            <div class="mt-8 flex flex-wrap gap-3">
+                <a href="/apps/nametag" class="btn btn-primary btn-lg">Reka tag anda</a>
+                <a href="/harga" class="btn btn-outline btn-lg border-white/20">Lihat harga</a>
+            </div>
+            <p class="mt-4 text-sm text-graphite-400">
+                Percuma untuk mereka dan melihat pratonton. Muat turun STL contoh untuk uji pencetak sebelum bayar apa-apa.
+            </p>
+        </div>
+
+        <div class="panel p-6">
+            <!-- A drawn sample rather than a photo: this is exactly the geometry the studio produces. -->
+            <svg viewBox="0 0 100 54" class="h-auto w-full" role="img" aria-label="Contoh tag nama dengan nama dan jawatan">
+                <text x="6" y="4.6" fill="#69768A" font-size="2.8">76 × 25 mm</text>
+                <rect x="6" y="7" width="88" height="29" rx="3" fill="#252D38" stroke="rgba(255,255,255,0.18)" stroke-width="0.4"></rect>
+                <text x="50" y="21" text-anchor="middle" fill="#F4F6F9" font-size="6.4" font-weight="800" letter-spacing="0.3">MOHAMAD ZAID</text>
+                <text x="50" y="29.5" text-anchor="middle" fill="#C3CAD4" font-size="4">Guru Reka Bentuk & Teknologi</text>
+                <circle cx="34" cy="45" r="4.15" fill="#12161C" stroke="rgba(245,165,36,0.6)" stroke-width="0.4"></circle>
+                <circle cx="66" cy="45" r="4.15" fill="#12161C" stroke="rgba(245,165,36,0.6)" stroke-width="0.4"></circle>
+                <text x="50" y="46" text-anchor="middle" fill="#69768A" font-size="2.8">belakang</text>
+                <text x="50" y="53" text-anchor="middle" fill="#69768A" font-size="2.8">dua poket magnet Ø8 × 2 mm</text>
+            </svg>
+            <p class="mt-4 text-sm text-graphite-300">
+                Contoh preset <strong class="font-semibold text-base-content">Guru &amp; Staf Sekolah</strong> — 76 × 25 × 3 mm, teks timbul 0.8 mm, dua poket
+                magnet.
+            </p>
+        </div>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <h2>Tiga langkah sahaja</h2>
+        <ol class="mt-8 grid gap-6 md:grid-cols-3">
+            {
+                steps.map((step, index) => (
+                    <li class="panel p-6">
+                        <span class="tabular text-3xl font-extrabold text-brass-400">{String(index + 1).padStart(2, '0')}</span>
+                        <h3 class="mt-3">{step.title}</h3>
+                        <p class="mt-2 text-sm text-graphite-300">{step.body}</p>
+                    </li>
+                ))
+            }
+        </ol>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <h2>Kenapa fail ini boleh terus dicetak</h2>
+        <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {
+                features.map((feature) => (
+                    <div class="panel p-5">
+                        <h3 class="text-base">{feature.title}</h3>
+                        <p class="mt-2 text-sm text-graphite-300">{feature.body}</p>
+                    </div>
+                ))
+            }
+        </div>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <h2>Harga yang terus terang</h2>
+            <a href="/harga" class="text-sm text-brass-300 underline underline-offset-4">Butiran penuh</a>
+        </div>
+        <div class="mt-8 grid gap-5 sm:grid-cols-2">
+            {
+                PLANS.map((plan) => (
+                    <div class="panel p-6">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <h3>{plan.label}</h3>
+                            <p class="tabular text-2xl font-extrabold text-brass-300">
+                                {formatPrice(plan.amount)}
+                                {plan.mode === 'subscription' && <span class="text-sm font-normal text-graphite-400">/bulan</span>}
+                            </p>
+                        </div>
+                        <p class="mt-1 text-sm text-graphite-300">{plan.tagline}</p>
+                        <ul class="mt-4 space-y-1.5 text-sm text-graphite-300">
+                            {plan.features.map((feature) => (
+                                <li class="flex gap-2">
+                                    <span aria-hidden="true" class="text-brass-400">
+                                        ✓
+                                    </span>
+                                    {feature}
+                                </li>
+                            ))}
+                        </ul>
+                        <a href="/harga" class="btn btn-primary btn-sm mt-6">
+                            Pilih {plan.label}
+                        </a>
+                    </div>
+                ))
+            }
+        </div>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <div class="panel flex flex-wrap items-center justify-between gap-6 p-8">
+            <div>
+                <h2>Cuba dulu, bayar kemudian</h2>
+                <p class="mt-2 max-w-xl text-graphite-300">
+                    Reka bentuk dan pratonton adalah percuma sepenuhnya. Muat turun fail contoh untuk menala pencetak anda, dan bayar hanya apabila anda mahu
+                    fail nama sebenar.
+                </p>
+            </div>
+            <a href="/apps/nametag" class="btn btn-primary btn-lg">Buka Studio Nametag</a>
+        </div>
+    </section>
 </Layout>

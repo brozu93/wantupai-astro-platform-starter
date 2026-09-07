@@ -4,47 +4,51 @@
 
 @layer base {
     h1 {
-        @apply text-4xl font-bold tracking-tight sm:text-5xl;
+        @apply text-3xl font-extrabold tracking-tight sm:text-5xl;
     }
 
     h2 {
-        @apply text-2xl font-bold sm:text-3xl;
+        @apply text-2xl font-bold tracking-tight sm:text-3xl;
+    }
+
+    h3 {
+        @apply text-lg font-semibold sm:text-xl;
     }
 
     a {
-        @apply underline transition hover:opacity-80;
+        @apply transition hover:opacity-80;
     }
 
-    pre {
-        @apply p-6 overflow-x-auto rounded-lg;
+    /* Links inside running text keep an underline; buttons and cards opt out. */
+    .prose-links a:not(.btn):not(.card):not(.no-underline) {
+        @apply underline decoration-brass-400/50 underline-offset-4;
     }
 
     :not(pre) > code {
-        @apply px-1 py-0.5 font-mono rounded bg-[#1f1f1f] text-[#F67280];
+        @apply rounded bg-graphite-800 px-1 py-0.5 font-mono text-brass-300;
         font-size: 0.9em;
+    }
+
+    pre {
+        @apply overflow-x-auto rounded-lg bg-graphite-800 p-4 text-sm;
     }
 }
 
 @layer components {
-    .markdown > h1,
-    .markdown > h2 {
-        @apply mt-12 mb-6;
+    .panel {
+        @apply rounded-xl border border-white/10 bg-graphite-800/60 backdrop-blur;
     }
 
-    .markdown > p,
-    .markdown > pre {
-        @apply my-6;
-    }
-
-    .markdown > :first-child {
-        @apply mt-0;
-    }
-
-    .markdown > :last-child {
-        @apply mb-0;
+    .field-label {
+        @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-graphite-300;
     }
 
     .btn:disabled {
-        @apply text-neutral-400 bg-neutral-700;
+        @apply border-transparent bg-graphite-700 text-graphite-400;
+    }
+
+    /* Numbers that update live read better tabular. */
+    .tabular {
+        font-variant-numeric: tabular-nums;
     }
 }

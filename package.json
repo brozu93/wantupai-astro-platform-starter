@@ -1,5 +1,5 @@
 {
-  "name": "astro-netlify-platform-starter",
+  "name": "kakas",
   "type": "module",
   "version": "0.1.0",
   "scripts": {
@@ -7,7 +7,9 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check:geometry": "esbuild scripts/check-geometry.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/check-geometry.mjs --log-level=warning && node node_modules/.cache/check-geometry.mjs",
+    "build:fonts": "node scripts/build-font-data.mjs"
   },
   "dependencies": {
     "@astrojs/netlify": "^5.2.0",
@@ -19,17 +21,19 @@
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
     "astro": "^4.16.18",
-    "blobshape": "^1.0.0",
-    "marked": "^13.0.0",
-    "marked-shiki": "^1.1.0",
+    "earcut": "^3.2.3",
+    "polygon-clipping": "^0.15.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwindcss": "^3.4.3",
-    "unique-names-generator": "^4.7.1"
+    "tailwindcss": "^3.4.3"
   },
   "devDependencies": {
-    "@types/blobshape": "^1.0.3",
+    "@astrojs/check": "^0.9.10",
     "@types/node": "^20.12.7",
-    "daisyui": "^4.10.2"
-  }
+    "daisyui": "^4.10.2",
+    "esbuild": "^0.28.2",
+    "opentype.js": "^2.0.0",
+    "typescript": "^5.9.3"
+  },
+  "description": "Perkakas digital KAKAS - penjana STL nametag untuk pencetak 3D."
 }

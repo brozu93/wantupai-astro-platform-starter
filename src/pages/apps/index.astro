@@ -1,0 +1,66 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const apps = [
+    {
+        name: 'Penjana Nametag',
+        href: '/apps/nametag',
+        status: 'Sedia digunakan',
+        available: true,
+        summary: 'Tag nama kerajaan, sekolah dan korporat sebagai fail STL siap cetak — poket magnet, teks timbul atau ukir, mod senarai untuk seluruh staf.'
+    },
+    {
+        name: 'Penjana Label Pasu',
+        href: null,
+        status: 'Dalam pembinaan',
+        available: false,
+        summary: 'Label tanaman tahan cuaca dengan nama saintifik dan tarikh tanam, untuk pencetak 3D atau pengukir laser.'
+    },
+    {
+        name: 'Penjana Kod QR Tiga Dimensi',
+        href: null,
+        status: 'Dalam pembinaan',
+        available: false,
+        summary: 'Tukar pautan kedai atau kad perniagaan kepada plat QR dua warna yang boleh diimbas selepas dicetak.'
+    }
+];
+---
+
+<Layout title="Apps" description="Senarai perkakas digital KAKAS untuk pengguna pencetak 3D dan mesin ukir.">
+    <section class="py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">Perkakas</p>
+        <h1 class="mt-2">Apps KAKAS</h1>
+        <p class="mt-4 max-w-2xl text-graphite-300">
+            Setiap app menyelesaikan satu kerja kecil yang selalu berulang di bengkel: sesuatu yang biasanya mengambil masa satu jam dalam perisian CAD,
+            disiapkan dalam beberapa minit di dalam pelayar.
+        </p>
+
+        <ul class="mt-10 grid gap-5 md:grid-cols-2">
+            {
+                apps.map((app) => (
+                    <li class="panel flex flex-col p-6">
+                        <div class="flex items-start justify-between gap-3">
+                            <h2 class="text-xl">{app.name}</h2>
+                            <span
+                                class:list={[
+                                    'shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide',
+                                    app.available ? 'bg-success/15 text-success' : 'bg-white/10 text-graphite-300'
+                                ]}
+                            >
+                                {app.status}
+                            </span>
+                        </div>
+                        <p class="mt-3 grow text-sm text-graphite-300">{app.summary}</p>
+                        {app.href ? (
+                            <a href={app.href} class="btn btn-primary btn-sm mt-6 self-start">
+                                Buka app
+                            </a>
+                        ) : (
+                            <p class="mt-6 text-xs text-graphite-500">Akan datang.</p>
+                        )}
+                    </li>
+                ))
+            }
+        </ul>
+    </section>
+</Layout>

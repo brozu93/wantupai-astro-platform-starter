@@ -1,0 +1,18 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ClaimLicence from '../../components/billing/ClaimLicence';
+
+export const prerender = false;
+---
+
+<Layout title="Pembayaran berjaya" description="Kunci lesen KAKAS anda.">
+    <section class="py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-success">Selesai</p>
+        <h1 class="mt-2">Terima kasih — lesen anda sudah aktif.</h1>
+        <p class="mt-4 max-w-2xl text-graphite-300">Simpan kunci di bawah. Anda memerlukannya untuk memuat turun fail STL pada mana-mana peranti.</p>
+
+        <div class="mt-8 max-w-2xl">
+            <ClaimLicence client:load />
+        </div>
+    </section>
+</Layout>

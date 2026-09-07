@@ -1,0 +1,85 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const settings = [
+    ['Orientasi', 'Muka ke atas, belakang rata di atas plat. Tiada sokongan diperlukan.'],
+    ['Ketinggian lapisan', '0.16 mm untuk teks paling kemas; 0.2 mm sudah memadai untuk kebanyakan tag.'],
+    ['Muncung', '0.4 mm. Untuk teks bersaiz 3 mm ke bawah, muncung 0.25 mm memberi tepi lebih tajam.'],
+    ['Dinding', '3 gelung dinding supaya tepi huruf padat dan tidak berongga.'],
+    ['Isian', '15–20% sudah cukup; plat ini nipis dan tidak menanggung beban.'],
+    ['Bahan', 'PLA atau PETG. PETG lebih tahan haba jika tag ditinggalkan dalam kereta.'],
+    ['Kadar sejuk', 'Kipas penuh selepas lapisan pertama, supaya bucu huruf tidak melekuk.']
+];
+
+const twoColour = [
+    'Cetak plat sehingga permukaan muka — ketinggian ini diberitahu oleh studio selepas anda menjana fail.',
+    'Masukkan arahan tukar warna pada ketinggian itu (M600, atau ciri “tukar filamen” dalam penghiris anda).',
+    'Sambung cetakan dengan filamen warna kedua. Hanya teks timbul dan bingkai yang dicetak selepas itu.'
+];
+---
+
+<Layout title="Panduan Cetakan" description="Tetapan penghiris, pemasangan magnet dan petua dua warna untuk mencetak tag nama KAKAS.">
+    <section class="prose-links py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">Panduan</p>
+        <h1 class="mt-2">Cara mencetak tag ini dengan kemas</h1>
+        <p class="mt-4 max-w-prose text-graphite-300">
+            Fail yang dijana sudah tertutup rapat dan berskala milimeter sebenar — tiada penskalaan diperlukan semasa mengimport. Yang berikut ialah tetapan
+            yang memberi hasil paling konsisten pada pencetak FDM biasa.
+        </p>
+
+        <h2 class="mt-12">Tetapan penghiris</h2>
+        <div class="mt-5 overflow-x-auto">
+            <table class="table w-full">
+                <tbody>
+                    {
+                        settings.map(([label, value]) => (
+                            <tr class="border-white/10">
+                                <th class="w-48 align-top font-semibold text-base-content">{label}</th>
+                                <td class="text-graphite-300">{value}</td>
+                            </tr>
+                        ))
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="mt-12">Teks dua warna</h2>
+        <p class="mt-3 max-w-prose text-graphite-300">
+            Kerana teks timbul bermula tepat pada permukaan plat, satu pertukaran filamen sudah cukup untuk mendapatkan teks putih di atas plat hitam — tiada
+            pengecatan, tiada pelekat.
+        </p>
+        <ol class="mt-4 max-w-prose list-decimal space-y-2 pl-5 text-graphite-300">
+            {twoColour.map((step) => <li>{step}</li>)}
+        </ol>
+
+        <h2 class="mt-12">Memasang magnet</h2>
+        <p class="mt-3 max-w-prose text-graphite-300">
+            Poket dipotong 0.3 mm lebih besar daripada diameter magnet dan 0.2 mm lebih dalam daripada ketebalannya, jadi magnet masuk dengan tekanan tangan.
+            Titiskan sedikit gam serba guna sebelum menekan masuk, dan <strong class="text-base-content">semak kutub magnet</strong>: pasang satu magnet dalam
+            tag dan satu lagi pada pemegang di sebalik baju supaya keduanya bertarik, bukan bertolak.
+        </p>
+        <p class="mt-3 max-w-prose text-graphite-300">
+            Untuk baju korporat yang nipis, dua magnet Ø8 × 2 mm sudah cukup kuat. Untuk kain tebal seperti baju batik atau jaket, naikkan kepada Ø10 × 3 mm dan
+            tebalkan plat kepada 4 mm supaya masih ada dinding yang mencukupi di belakang muka hadapan.
+        </p>
+
+        <h2 class="mt-12">Kalau tulisan nampak kabur</h2>
+        <ul class="mt-4 max-w-prose list-disc space-y-2 pl-5 text-graphite-300">
+            <li>Naikkan tinggi huruf kepada 4.5 mm ke atas untuk baris nama — di bawah 3 mm, huruf halus mula bercantum.</li>
+            <li>Tukar kepada fon <strong class="text-base-content">Sempit Tebal</strong> untuk nama panjang, bukannya mengecilkan saiz huruf.</li>
+            <li>Untuk teks ukir, kedalaman 0.6 mm sudah jelas. Lebih dalam daripada itu hanya menambah masa cetakan.</li>
+            <li>Cetak fail contoh percuma dahulu — ia menggunakan saiz dan pemasangan yang sama seperti reka bentuk sebenar anda.</li>
+        </ul>
+
+        <h2 class="mt-12">Mesin ukir laser</h2>
+        <p class="mt-3 max-w-prose text-graphite-300">
+            Fail ini ialah STL pepejal untuk pencetak 3D. Untuk pengukir laser, gunakan mod <strong class="text-base-content">Ukir</strong> dan ambil kedudukan
+            teks daripada pratonton sebagai rujukan susun atur — kedalaman ukiran dalam fail sepadan dengan kedalaman yang anda tetapkan pada mesin.
+        </p>
+
+        <div class="panel mt-12 flex flex-wrap items-center justify-between gap-4 p-6">
+            <p class="text-graphite-300">Sudah bersedia untuk mencetak?</p>
+            <a href="/apps/nametag" class="btn btn-primary">Buka Studio Nametag</a>
+        </div>
+    </section>
+</Layout>
