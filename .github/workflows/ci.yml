@@ -38,29 +38,15 @@ jobs:
       - name: Nametag mesh check
         run: npm run check:geometry
 
-      # Attach the tags this run actually produced, so a reviewer can open them in a slicer
-      # instead of taking the mesh check's word for it. Only the presets on a green run
-      # (~4 MB); the awkward cases come along too when something failed and they are worth
-      # looking at.
-      - name: Upload preset STLs
-        if: success()
+      # Attach every tag this run produced - the five presets and the eleven awkward cases -
+      # so a reviewer can open them in a slicer instead of taking the mesh check's word for
+      # it. Uploaded on a failed run too, since that is when the geometry is worth opening.
+      # 17 MB of STL compresses to well under 1 MB in the artifact zip.
+      - name: Upload STLs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nametag-stl-presets
-          path: |
-            .stl-samples/guru.stl
-            .stl-samples/penjawat-awam.stl
-            .stl-samples/korporat.stl
-            .stl-samples/pelajar.stl
-            .stl-samples/tersuai.stl
-          retention-days: 7
-          if-no-files-found: warn
-
-      - name: Upload every STL on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: nametag-stl-all
+          name: nametag-stl
           path: .stl-samples/
           retention-days: 7
-          if-no-files-found: ignore
+          if-no-files-found: warn

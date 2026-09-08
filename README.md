@@ -128,9 +128,9 @@ netlify dev           # http://localhost:8888
 ### Pemeriksaan automatik
 
 `.github/workflows/ci.yml` menjalankan `astro check`, `npm run build` dan `npm run check:geometry`
-pada setiap pull request dan setiap tolakan ke `main`. Fail STL bagi kelima-lima preset dilampirkan
-pada setiap larian yang lulus, jadi pengulas boleh membukanya dalam penghiris sendiri; apabila
-pemeriksaan gagal, kesemua 16 kes dilampirkan supaya yang bermasalah boleh diperiksa.
+pada setiap pull request dan setiap tolakan ke `main`. Kesemua 16 fail STL — lima preset dan
+sebelas kes sukar — dilampirkan pada setiap larian, lulus atau gagal, jadi pengulas boleh
+membukanya sendiri dalam penghiris.
 
 ---
 
