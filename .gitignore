@@ -26,5 +26,6 @@ pnpm-debug.log*
 # nametag generator working files
 .fonts-cache/
 .stl-samples/
+stl-samples/
 .tmp/
 .kakas-dev-data/
