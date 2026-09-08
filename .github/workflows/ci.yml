@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push supersedes the run still going for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, build and mesh check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx astro check
+
+      - name: Build
+        run: npm run build
+
+      # The generator is the product, so the mesh check is the test suite that matters:
+      # it builds every preset plus a set of awkward cases and fails on an open edge, a
+      # repeated surface, an incomplete triangulation or an inverted normal.
+      - name: Nametag mesh check
+        run: npm run check:geometry
+
+      # Attach the tags this run actually produced, so a reviewer can open them in a slicer
+      # instead of taking the mesh check's word for it. Only the presets on a green run
+      # (~4 MB); the awkward cases come along too when something failed and they are worth
+      # looking at.
+      - name: Upload preset STLs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nametag-stl-presets
+          path: |
+            .stl-samples/guru.stl
+            .stl-samples/penjawat-awam.stl
+            .stl-samples/korporat.stl
+            .stl-samples/pelajar.stl
+            .stl-samples/tersuai.stl
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload every STL on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nametag-stl-all
+          path: .stl-samples/
+          retention-days: 7
+          if-no-files-found: ignore
