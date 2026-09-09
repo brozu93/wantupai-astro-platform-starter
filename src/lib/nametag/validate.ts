@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { isFontId } from './fonts';
+import { DEFAULT_BED, PLATE_LIMITS } from './plate';
+import type { PlateOptions } from './plate';
 import { DEFAULT_PRESET, LIMITS, findPreset } from './presets';
 import type { Align, FontId, Mounting, NametagSpec, Relief, TagLine, TextTransform } from './types';
 
@@ -122,4 +124,51 @@ export function suggestedFilename(spec: NametagSpec, extension = 'stl'): string 
             .replace(/^-+|-+$/g, '')
             .slice(0, 40) || 'nametag';
     return `kakas-${slug}-${spec.width}x${spec.height}mm.${extension}`;
+}
+
+export interface ParsedRow {
+    /** Position in the submitted list, so a skipped row does not renumber the rest. */
+    index: number;
+    spec: NametagSpec;
+}
+
+/**
+ * Turns a list of rows into tag specs, each row replacing the text of the base design's lines.
+ *
+ * Lines a row leaves empty are dropped by parseSpec, so a two-field row on a three-line design
+ * simply produces a two-line tag. A row that cannot make a valid tag is reported and skipped
+ * rather than failing the whole list - one typo should not cost someone their other 59 tags.
+ */
+export function specsFromRows(base: NametagSpec, rows: unknown[]): { rows: ParsedRow[]; problems: string[] } {
+    const parsed: ParsedRow[] = [];
+    const problems: string[] = [];
+
+    for (const [index, row] of rows.entries()) {
+        const fields = (Array.isArray(row) ? row : [row]).map((field) => String(field ?? '').trim());
+        try {
+            parsed.push({
+                index,
+                spec: parseSpec({ ...base, lines: base.lines.map((line, i) => ({ ...line, text: fields[i] ?? '' })) })
+            });
+        } catch (error) {
+            problems.push(`Baris ${index + 1}: ${(error as Error).message}`);
+        }
+    }
+
+    return { rows: parsed, problems };
+}
+
+/** Reads the bed and spacing settings for plate mode, clamping everything to sane limits. */
+export function parsePlateOptions(input: unknown): PlateOptions {
+    const raw = (input ?? {}) as Record<string, unknown>;
+    const columns = Number(raw.columns);
+
+    return {
+        bedWidth: clamp(raw.bedWidth, PLATE_LIMITS.bed, DEFAULT_BED.width),
+        bedHeight: clamp(raw.bedHeight, PLATE_LIMITS.bed, DEFAULT_BED.height),
+        spacing: clamp(raw.spacing, PLATE_LIMITS.spacing, 5),
+        margin: clamp(raw.margin, PLATE_LIMITS.margin, 5),
+        // Zero means "pick for me", which is the default the studio sends.
+        columns: Number.isFinite(columns) && columns > 0 ? Math.min(Math.floor(columns), PLATE_LIMITS.columns.max) : undefined
+    };
 }

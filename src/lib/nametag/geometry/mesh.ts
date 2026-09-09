@@ -177,6 +177,21 @@ export class Mesh {
         for (const hole of polygon.holes) this.addWalls(hole, zLow, zHigh);
     }
 
+    /**
+     * Copies another mesh in, shifted by the given offset.
+     *
+     * Plate mode builds each tag on its own at the origin and then places it, so a name that
+     * repeats in the list is built once and stamped as many times as it appears.
+     */
+    appendTranslated(other: Mesh, dx: number, dy: number, dz = 0): void {
+        const source = other.data;
+        for (let i = 0; i < source.length; i += 3) {
+            this.data.push(source[i] + dx, source[i + 1] + dy, source[i + 2] + dz);
+        }
+        this.stats.slivers += other.stats.slivers;
+        this.stats.incompleteFaces += other.stats.incompleteFaces;
+    }
+
     bounds(): { min: Vec3; max: Vec3 } {
         const min: Vec3 = [Infinity, Infinity, Infinity];
         const max: Vec3 = [-Infinity, -Infinity, -Infinity];

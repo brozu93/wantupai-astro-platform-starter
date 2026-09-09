@@ -4,7 +4,7 @@ import { isSubscriptionActive, publicLicence, readLicence, recordBatch } from '.
 import { generateTag } from '../../../lib/nametag/generate';
 import { LIMITS } from '../../../lib/nametag/presets';
 import type { NametagSpec } from '../../../lib/nametag/types';
-import { SpecError, parseSpec, specHash } from '../../../lib/nametag/validate';
+import { SpecError, parseSpec, specHash, specsFromRows } from '../../../lib/nametag/validate';
 import { createZip } from '../../../lib/nametag/zip';
 import type { ZipEntry } from '../../../lib/nametag/zip';
 
@@ -39,28 +39,17 @@ export const POST: APIRoute = async ({ request }) => {
         throw error;
     }
 
-    const rows = Array.isArray(body.rows) ? body.rows : [];
-    if (rows.length === 0) return fail('Senarai kosong. Tambah sekurang-kurangnya satu baris.');
-    if (rows.length > LIMITS.maxBatchRows) return fail(`Maksimum ${LIMITS.maxBatchRows} tag setiap muat turun.`);
+    const rawRows = Array.isArray(body.rows) ? body.rows : [];
+    if (rawRows.length === 0) return fail('Senarai kosong. Tambah sekurang-kurangnya satu baris.');
+    if (rawRows.length > LIMITS.maxBatchRows) return fail(`Maksimum ${LIMITS.maxBatchRows} tag setiap muat turun.`);
+
+    const { rows, problems } = specsFromRows(base, rawRows);
 
     const entries: ZipEntry[] = [];
     const hashes: string[] = [];
     const used = new Set<string>();
-    const problems: string[] = [];
 
-    for (const [index, row] of rows.entries()) {
-        const fields = (Array.isArray(row) ? row : [row]).map((field) => String(field ?? '').trim());
-        let spec: NametagSpec;
-        try {
-            // Each row replaces the text of the base design, keeping every other setting.
-            // Lines the row leaves empty are dropped by parseSpec, so a two-field row on a
-            // three-line design simply produces a two-line tag.
-            spec = parseSpec({ ...base, lines: base.lines.map((line, i) => ({ ...line, text: fields[i] ?? '' })) });
-        } catch (error) {
-            problems.push(`Baris ${index + 1}: ${(error as Error).message}`);
-            continue;
-        }
-
+    for (const { index, spec } of rows) {
         const tag = await generateTag(spec);
         entries.push({ name: uniqueName(spec, index, used), data: tag.stl });
         hashes.push(specHash(spec));

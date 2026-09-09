@@ -47,6 +47,7 @@ export const PLANS: Plan[] = [
         features: [
             'Reka bentuk STL tanpa had',
             'Mod senarai: satu fail ZIP untuk seluruh staf',
+            'Mod plat: seluruh senarai tersusun atas dandang, satu kali cetak',
             'Semua ciri Bayar Sekali',
             'Lesen guna komersial - boleh jual tag yang dicetak',
             'Batal bila-bila masa'

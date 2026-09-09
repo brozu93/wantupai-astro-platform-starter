@@ -9,8 +9,10 @@ import { join } from 'node:path';
 import { loadFonts } from '../src/lib/nametag/fonts';
 import { fontIdsUsed, layoutTag } from '../src/lib/nametag/layout';
 import { buildNametag } from '../src/lib/nametag/model';
+import { arrangePlate } from '../src/lib/nametag/plate';
+import type { PlateOptions } from '../src/lib/nametag/plate';
 import { PRESETS } from '../src/lib/nametag/presets';
-import type { Mesh } from '../src/lib/nametag/geometry/mesh';
+import { Mesh } from '../src/lib/nametag/geometry/mesh';
 import type { NametagSpec } from '../src/lib/nametag/types';
 
 const outDir = process.env.STL_OUT ?? '.stl-samples';
@@ -95,6 +97,42 @@ async function run(name: string, spec: NametagSpec): Promise<boolean> {
     return ok;
 }
 
+/**
+ * Plate mode assembles many tags into one file. Each tag is closed on its own, so the plate is
+ * a set of disjoint closed surfaces - which the same edge pairing and volume checks cover. The
+ * case that would break it is tags packed tight enough for two walls to land on identical
+ * vertices, which shows up here as repeated edges.
+ */
+async function runPlate(name: string, spec: NametagSpec, names: string[], options: PlateOptions): Promise<boolean> {
+    const fonts = await loadFonts(fontIdsUsed(spec));
+    const arrangement = arrangePlate(spec.width, spec.height, names.length, options);
+    const plate = new Mesh();
+
+    for (const slot of arrangement.slots) {
+        const rowSpec: NametagSpec = { ...spec, lines: spec.lines.map((line, i) => (i === 0 ? { ...line, text: names[slot.index] } : line)) };
+        const { mesh } = buildNametag(rowSpec, layoutTag(rowSpec, fonts));
+        plate.appendTranslated(mesh, slot.cx, slot.cy);
+    }
+
+    const report = inspect(plate);
+    const ok = report.openEdges === 0 && report.duplicateEdges === 0 && report.volume > 0 && plate.stats.incompleteFaces === 0;
+    console.log(
+        `${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(26)} ${String(report.triangles).padStart(6)} tri  ${report.bounds.padEnd(24)}` +
+            ` open=${report.openEdges} dup=${report.duplicateEdges} vol=${report.volume.toFixed(0)}mm³` +
+            ` incomplete=${plate.stats.incompleteFaces}`
+    );
+    console.log(`      susunan: ${arrangement.columns} lajur × ${arrangement.rows} baris, ${arrangement.placed}/${names.length} tag, jarak ${arrangement.spacing} mm`);
+
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(join(outDir, `${name}.stl`), plate.toSTL(`KAKAS ${name}`));
+    return ok;
+}
+
+const ROSTER = [
+    'MUNIROH', 'NOLIYATI', 'NORMA', 'SA\'ADAH', 'KHAIRUNNISA\'', 'DANIAL', 'ROHAYATI', 'MUHAMAD',
+    'NORASIKIN', 'NORASIKIN', 'ZUNAIDA', 'ROHANA', 'RUHANI', 'ZUNIDAH', 'AISYAH', 'FARIDAH'
+];
+
 const cases: Array<[string, NametagSpec]> = PRESETS.map((preset) => [preset.id, preset.spec]);
 
 const guru = PRESETS[0].spec;
@@ -143,10 +181,28 @@ cases.push([
     }
 ]);
 
+const plateCases: Array<[string, NametagSpec, string[], PlateOptions]> = [
+    // The reference arrangement: sixteen 76 x 25 tags land on 2 columns x 8 rows.
+    ['plate-16-bambu', guru, ROSTER, { bedWidth: 256, bedHeight: 256, spacing: 5, margin: 5 }],
+    // A full Voron Trident 350 bed, which is where the roster actually gets printed.
+    ['plate-voron-full', guru, ROSTER, { bedWidth: 350, bedHeight: 350, spacing: 5, margin: 5 }],
+    // Sharp corners asking for zero spacing - the case that puts two walls on the same
+    // vertices. arrangePlate clamps to MIN_SPACING, and this fails loudly if that ever stops.
+    ['plate-tight', { ...guru, cornerRadius: 0 }, ROSTER.slice(0, 6), { bedWidth: 350, bedHeight: 350, spacing: 0, margin: 5 }],
+    // More names than the bed holds: the arrangement must place what fits and no more.
+    ['plate-overflow', guru, ROSTER, { bedWidth: 220, bedHeight: 220, spacing: 5, margin: 5 }],
+    // A forced single column, plus engraved text and a lanyard slot through the plate.
+    ['plate-column', { ...guru, relief: 'engrave', mounting: 'lanyard' }, ROSTER.slice(0, 5), { bedWidth: 220, bedHeight: 220, spacing: 4, margin: 5, columns: 1 }]
+];
+
 let failures = 0;
 for (const [name, spec] of cases) {
     if (!(await run(name, spec))) failures++;
 }
+for (const [name, spec, names, options] of plateCases) {
+    if (!(await runPlate(name, spec, names, options))) failures++;
+}
 
-console.log(`\n${cases.length - failures}/${cases.length} kes lulus. Fail STL: ${outDir}/`);
+const total = cases.length + plateCases.length;
+console.log(`\n${total - failures}/${total} kes lulus. Fail STL: ${outDir}/`);
 if (failures > 0) process.exit(1);

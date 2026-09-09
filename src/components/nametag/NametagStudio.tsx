@@ -2,15 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FONT_OPTIONS, loadFonts } from '../../lib/nametag/fonts';
 import { fontIdsUsed, layoutTag } from '../../lib/nametag/layout';
 import { maxEngraveDepth, mountingLayout } from '../../lib/nametag/mounting';
+import { BEDS, DEFAULT_BED, PLATE_LIMITS, arrangePlate, findBed } from '../../lib/nametag/plate';
 import { DEFAULT_PRESET, LIMITS, PRESETS } from '../../lib/nametag/presets';
 import type { FontData, FontId, Mounting, NametagSpec, Relief, TagLayout, TagLine } from '../../lib/nametag/types';
 import { NumberField, Section, Segmented, SelectField, TextField, Toggle } from './controls';
 import PaywallDialog from './PaywallDialog';
+import PlatePreview from './PlatePreview';
 import TagPreview from './TagPreview';
 
 const LICENCE_STORAGE_KEY = 'kakas.licence';
 /** PLA is about 1.24 g/cm³; close enough for a filament estimate. */
 const PLA_DENSITY = 0.00124;
+/** Clearance kept free at the bed edge, in mm. Enough room for a brim on every printer here. */
+const PLATE_MARGIN = 5;
 
 interface LicenceView {
     key: string;
@@ -27,15 +31,20 @@ const LINE_ROLES = ['Nama', 'Jawatan', 'Jabatan / Sekolah', 'Baris tambahan'];
 export default function NametagStudio() {
     const [spec, setSpec] = useState<NametagSpec>(() => structuredClone(DEFAULT_PRESET.spec));
     const [fonts, setFonts] = useState<Map<FontId, FontData> | null>(null);
-    const [view, setView] = useState<'front' | 'back'>('front');
+    const [view, setView] = useState<'front' | 'back' | 'plate'>('front');
     const [licence, setLicence] = useState<LicenceView | null>(null);
     const [licenceInput, setLicenceInput] = useState('');
     const [licenceError, setLicenceError] = useState<string | null>(null);
-    const [busy, setBusy] = useState<null | 'stl' | 'sample' | 'batch' | 'licence'>(null);
+    const [busy, setBusy] = useState<null | 'stl' | 'sample' | 'batch' | 'plate' | 'licence'>(null);
     const [status, setStatus] = useState<string | null>(null);
     const [notes, setNotes] = useState<string[]>([]);
     const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false });
     const [batchText, setBatchText] = useState('');
+    const [bedId, setBedId] = useState<string>(DEFAULT_BED.id);
+    const [customBed, setCustomBed] = useState({ width: 220, height: 220 });
+    const [spacing, setSpacing] = useState(5);
+    /** Zero means the packer chooses; anything else forces that many columns. */
+    const [plateColumns, setPlateColumns] = useState(0);
 
     // Glyph outlines are fetched per weight, so switching a font pulls only what it needs.
     useEffect(() => {
@@ -89,6 +98,55 @@ export default function NametagStudio() {
             return null;
         }
     }, [spec, fonts]);
+
+    // One row per tag. Splitting here rather than at download time lets the plate preview,
+    // the tag count and the request body all read from the same parse.
+    const batchRows = useMemo(
+        () =>
+            batchText
+                .split('\n')
+                .map((row) => row.split('|').map((field) => field.trim()))
+                .filter((fields) => fields.some((field) => field !== '')),
+        [batchText]
+    );
+
+    const bed = useMemo(() => {
+        const preset = findBed(bedId);
+        return preset ?? { id: 'custom', label: 'Tersuai', width: customBed.width, height: customBed.height };
+    }, [bedId, customBed]);
+
+    const arrangement = useMemo(
+        () =>
+            arrangePlate(spec.width, spec.height, Math.max(1, batchRows.length), {
+                bedWidth: bed.width,
+                bedHeight: bed.height,
+                spacing,
+                margin: PLATE_MARGIN,
+                columns: plateColumns > 0 ? plateColumns : undefined
+            }),
+        [spec.width, spec.height, batchRows.length, bed.width, bed.height, spacing, plateColumns]
+    );
+
+    // Laid out once per distinct row: a name repeated to get a spare copy is free after the first.
+    const rowLayouts = useMemo<Array<TagLayout | null>>(() => {
+        if (!fonts || batchRows.length === 0) return [];
+        const cache = new Map<string, TagLayout | null>();
+        return batchRows.map((fields) => {
+            const cacheKey = fields.join('\u0000');
+            if (!cache.has(cacheKey)) {
+                const lines = spec.lines.map((line, i) => ({ ...line, text: fields[i] ?? '' })).filter((line) => line.text !== '');
+                try {
+                    cache.set(cacheKey, lines.length > 0 ? layoutTag({ ...spec, lines }, fonts) : null);
+                } catch {
+                    cache.set(cacheKey, null);
+                }
+            }
+            return cache.get(cacheKey) ?? null;
+        });
+    }, [batchRows, spec, fonts]);
+
+    // With no list yet, the plate view shows the design on its own so the bed is never blank.
+    const plateLayouts = batchRows.length > 0 ? rowLayouts : [layout];
 
     const mounting = useMemo(() => mountingLayout(spec), [spec]);
     const engraveLimit = useMemo(() => maxEngraveDepth(spec, mounting), [spec, mounting]);
@@ -197,12 +255,7 @@ export default function NametagStudio() {
             setPaywall({ open: true, reason: 'Mod senarai memerlukan langganan bulanan yang aktif.' });
             return;
         }
-        const rows = batchText
-            .split('\n')
-            .map((row) => row.split('|').map((field) => field.trim()))
-            .filter((fields) => fields.some((field) => field !== ''));
-
-        if (rows.length === 0) {
+        if (batchRows.length === 0) {
             setStatus('Masukkan sekurang-kurangnya satu baris dalam senarai.');
             return;
         }
@@ -213,7 +266,7 @@ export default function NametagStudio() {
             const response = await fetch('/api/nametag/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licenceKey: licence.key, spec, rows })
+                body: JSON.stringify({ licenceKey: licence.key, spec, rows: batchRows })
             });
             if (!response.ok) {
                 const data = (await response.json()) as { error?: string };
@@ -222,7 +275,57 @@ export default function NametagStudio() {
             const count = response.headers.get('X-Kakas-Count');
             setNotes(readNotes(response));
             await saveBlob(response, 'kakas-nametag.zip');
-            setStatus(`${count ?? rows.length} tag dijana dalam satu fail ZIP.`);
+            setStatus(`${count ?? batchRows.length} tag dijana dalam satu fail ZIP.`);
+        } catch (error) {
+            setStatus((error as Error).message);
+        } finally {
+            setBusy(null);
+        }
+    }
+
+    /** The whole list as one print job, rather than a folder of files to arrange by hand. */
+    async function downloadPlate() {
+        if (!licence?.unlimited) {
+            setPaywall({ open: true, reason: 'Mod plat memerlukan langganan bulanan yang aktif.' });
+            return;
+        }
+        if (batchRows.length === 0) {
+            setStatus('Masukkan sekurang-kurangnya satu baris dalam senarai.');
+            return;
+        }
+        if (!arrangement.fits) {
+            setStatus(arrangement.notes[0] ?? 'Tag tidak muat pada dandang ini.');
+            return;
+        }
+
+        setBusy('plate');
+        setStatus(null);
+        try {
+            const response = await fetch('/api/nametag/plate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    licenceKey: licence.key,
+                    spec,
+                    rows: batchRows,
+                    plate: { bedWidth: bed.width, bedHeight: bed.height, spacing, margin: PLATE_MARGIN, columns: plateColumns }
+                })
+            });
+            if (!response.ok) {
+                const data = (await response.json()) as { error?: string };
+                throw new Error(data.error ?? 'Gagal menjana plat.');
+            }
+
+            const count = response.headers.get('X-Kakas-Count') ?? String(batchRows.length);
+            const plates = Number(response.headers.get('X-Kakas-Plates') ?? '1');
+            const size = response.headers.get('X-Kakas-Size')?.replace('x', ' × ');
+            setNotes(readNotes(response));
+            await saveBlob(response, plates > 1 ? 'kakas-plat.zip' : 'kakas-plat.stl');
+            setStatus(
+                plates > 1
+                    ? `${count} tag disusun atas ${plates} plat — satu fail ZIP, satu fail untuk setiap kali cetak.`
+                    : `${count} tag disusun atas satu plat ${size} mm. Buka satu fail, cetak sekali.`
+            );
         } catch (error) {
             setStatus((error as Error).message);
         } finally {
@@ -471,19 +574,53 @@ export default function NametagStudio() {
                             <button type="button" className={`btn btn-sm join-item ${view === 'back' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('back')}>
                                 Belakang
                             </button>
+                            <button type="button" className={`btn btn-sm join-item ${view === 'plate' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('plate')}>
+                                Plat
+                                {batchRows.length > 0 && <span className="ml-1.5 text-[10px] opacity-70">{batchRows.length}</span>}
+                            </button>
                         </div>
                         <p className="tabular text-xs text-graphite-400">
-                            {spec.width} × {spec.height} × {spec.thickness} mm · ± {estimatedGrams.toFixed(1)} g PLA
+                            {view === 'plate' ? (
+                                <>
+                                    {arrangement.width.toFixed(1)} × {arrangement.height.toFixed(1)} × {spec.thickness} mm · ±{' '}
+                                    {(estimatedGrams * Math.max(1, arrangement.placed)).toFixed(1)} g PLA
+                                </>
+                            ) : (
+                                <>
+                                    {spec.width} × {spec.height} × {spec.thickness} mm · ± {estimatedGrams.toFixed(1)} g PLA
+                                </>
+                            )}
                         </p>
                     </div>
 
                     <div className="bg-graphite-950/60 p-5 sm:p-8">
-                        {fonts ? (
-                            <TagPreview spec={spec} layout={layout} view={view} />
-                        ) : (
+                        {!fonts ? (
                             <div className="flex h-40 items-center justify-center text-sm text-graphite-400">Memuatkan bentuk huruf…</div>
+                        ) : view === 'plate' ? (
+                            <PlatePreview spec={spec} arrangement={arrangement} layouts={plateLayouts} bedWidth={bed.width} bedHeight={bed.height} showBed />
+                        ) : (
+                            <TagPreview spec={spec} layout={layout} view={view} />
                         )}
                     </div>
+
+                    {view === 'plate' && (
+                        <div className="space-y-1 border-t border-white/10 px-4 py-3 text-xs">
+                            <p className="tabular text-graphite-300">
+                                {arrangement.placed} unit · {arrangement.columns} lajur × {arrangement.rows} baris · jarak {arrangement.spacing} mm ·{' '}
+                                {bed.label} · {bed.width} × {bed.height} mm
+                            </p>
+                            <p className="text-graphite-400">
+                                {arrangement.fits
+                                    ? `Dandang ini muat ${arrangement.capacity} tag saiz ini sekali cetak.`
+                                    : 'Tag lebih besar daripada dandang.'}
+                            </p>
+                            {arrangement.notes.map((note) => (
+                                <p key={note} className="text-warning">
+                                    {note}
+                                </p>
+                            ))}
+                        </div>
+                    )}
 
                     {warnings.length > 0 && (
                         <ul className="space-y-1 border-t border-white/10 bg-warning/10 px-4 py-3 text-xs text-warning">
@@ -567,28 +704,101 @@ export default function NametagStudio() {
                     )}
                 </div>
 
-                <details className="panel">
+                <details className="panel" open={batchRows.length > 0}>
                     <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
-                        Mod senarai — satu ZIP untuk seluruh staf
+                        Senarai nama — seluruh staf sekali jalan
+                        {batchRows.length > 0 && <span className="ml-2 text-xs font-normal text-graphite-400">{batchRows.length} nama</span>}
                         <span className="ml-2 rounded bg-brass-400/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-brass-300">Langganan</span>
                     </summary>
-                    <div className="space-y-3 border-t border-white/10 px-4 py-4">
-                        <p className="text-xs text-graphite-300">
-                            Satu baris untuk setiap tag. Pisahkan medan dengan <code>|</code> mengikut susunan baris teks di sebelah kiri. Semua tetapan lain
-                            mengikut reka bentuk semasa.
-                        </p>
-                        <textarea
-                            className="textarea textarea-bordered h-40 w-full bg-graphite-900/70 font-mono text-xs"
-                            placeholder={'NURUL AIN BINTI HASSAN | Guru Bahasa Melayu\nAHMAD FAIZ BIN OTHMAN | Guru Matematik'}
-                            value={batchText}
-                            onChange={(event) => setBatchText(event.target.value)}
-                        />
-                        <div className="flex flex-wrap items-center gap-3">
-                            <button type="button" className="btn btn-secondary btn-sm" onClick={downloadBatch} disabled={busy !== null}>
-                                {busy === 'batch' ? 'Menjana…' : 'Muat turun ZIP'}
-                            </button>
-                            <span className="text-xs text-graphite-400">Maksimum {LIMITS.maxBatchRows} tag setiap muat turun.</span>
+                    <div className="space-y-4 border-t border-white/10 px-4 py-4">
+                        <div className="space-y-2">
+                            <p className="text-xs text-graphite-300">
+                                Satu baris untuk setiap tag. Pisahkan medan dengan <code>|</code> mengikut susunan baris teks di sebelah kiri. Semua tetapan
+                                lain mengikut reka bentuk semasa. Ulang nama pada baris lain untuk dapat salinan tambahan.
+                            </p>
+                            <textarea
+                                className="textarea textarea-bordered h-40 w-full bg-graphite-900/70 font-mono text-xs"
+                                placeholder={'NURUL AIN BINTI HASSAN | Guru Bahasa Melayu\nAHMAD FAIZ BIN OTHMAN | Guru Matematik'}
+                                value={batchText}
+                                onChange={(event) => setBatchText(event.target.value)}
+                                aria-label="Senarai nama, satu baris setiap tag"
+                            />
+                            <p className="text-xs text-graphite-400">Maksimum {LIMITS.maxBatchRows} tag setiap muat turun.</p>
                         </div>
+
+                        <div className="space-y-3 border-t border-white/10 pt-4">
+                            <SelectField
+                                label="Dandang pencetak"
+                                value={bedId}
+                                options={[...BEDS.map((item) => ({ value: item.id, label: `${item.label} — ${item.width} × ${item.height} mm` })), { value: 'custom', label: 'Tersuai' }]}
+                                onChange={setBedId}
+                                hint="Menentukan berapa banyak tag muat pada satu kali cetak."
+                            />
+
+                            {bedId === 'custom' && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <NumberField
+                                        label="Lebar dandang"
+                                        value={customBed.width}
+                                        min={PLATE_LIMITS.bed.min}
+                                        max={PLATE_LIMITS.bed.max}
+                                        step={10}
+                                        onChange={(width) => setCustomBed((current) => ({ ...current, width }))}
+                                    />
+                                    <NumberField
+                                        label="Dalam dandang"
+                                        value={customBed.height}
+                                        min={PLATE_LIMITS.bed.min}
+                                        max={PLATE_LIMITS.bed.max}
+                                        step={10}
+                                        onChange={(height) => setCustomBed((current) => ({ ...current, height }))}
+                                    />
+                                </div>
+                            )}
+
+                            <NumberField
+                                label="Jarak antara tag"
+                                value={spacing}
+                                min={PLATE_LIMITS.spacing.min}
+                                max={PLATE_LIMITS.spacing.max}
+                                step={0.5}
+                                onChange={setSpacing}
+                                hint="Rapat memuatkan lebih banyak tag; longgar lebih senang dikeluarkan dari dandang."
+                            />
+
+                            <NumberField
+                                label="Bilangan lajur"
+                                value={plateColumns}
+                                min={0}
+                                max={PLATE_LIMITS.columns.max}
+                                step={1}
+                                unit={plateColumns === 0 ? 'auto' : 'lajur'}
+                                onChange={(columns) => setPlateColumns(Math.round(columns))}
+                                hint="Biar sifar untuk susunan paling padat."
+                            />
+
+                            <p className="tabular rounded-lg bg-graphite-900/70 px-3 py-2 text-xs text-graphite-300">
+                                {arrangement.fits
+                                    ? `${arrangement.columns} lajur × ${arrangement.rows} baris · ${arrangement.width.toFixed(1)} × ${arrangement.height.toFixed(1)} mm · ${arrangement.capacity} tag setiap dandang`
+                                    : 'Tag lebih besar daripada dandang ini.'}{' '}
+                                <button type="button" className="underline underline-offset-4" onClick={() => setView('plate')}>
+                                    Lihat plat
+                                </button>
+                            </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+                            <button type="button" className="btn btn-primary btn-sm" onClick={downloadPlate} disabled={busy !== null}>
+                                {busy === 'plate' ? 'Menyusun…' : 'Muat turun satu plat'}
+                            </button>
+                            <button type="button" className="btn btn-outline btn-sm border-white/20" onClick={downloadBatch} disabled={busy !== null}>
+                                {busy === 'batch' ? 'Menjana…' : 'STL berasingan (ZIP)'}
+                            </button>
+                        </div>
+                        <p className="text-xs text-graphite-400">
+                            Satu plat memberi satu fail yang sudah tersusun — buka dalam penghiris, tekan cetak sekali. ZIP memberi satu fail bagi setiap
+                            nama, untuk disusun sendiri atau dicetak berasingan.
+                        </p>
                     </div>
                 </details>
             </div>

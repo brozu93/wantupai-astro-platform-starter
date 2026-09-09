@@ -27,6 +27,7 @@ Dibina dengan Astro, React, Tailwind + daisyUI, dan dihoskan di Netlify.
 | :-- | :-- |
 | `POST /api/nametag/generate` | Menjana satu STL. Perlukan kunci lesen. |
 | `POST /api/nametag/batch` | Menjana banyak STL sebagai ZIP. Perlukan langganan aktif. |
+| `POST /api/nametag/plate` | Menyusun seluruh senarai atas dandang dan memulangkan satu STL. Perlukan langganan aktif. |
 | `GET /api/nametag/sample` | STL contoh percuma dengan teks tetap. |
 | `POST /api/billing/checkout` | Memulakan pembelian. |
 | `POST /api/billing/claim` | Menukar pembayaran selesai kepada kunci lesen. |
@@ -67,9 +68,34 @@ Tiga perkara yang perlu ditangani untuk itu berjaya, dan setiap satunya ada dala
    berasingan yang bertindih dengan badan huruf. Kelompok yang bertindih sahaja melalui operasi
    union boolean; teks biasa tidak membayar kosnya.
 
-Jalankan `npm run check:geometry` untuk mengesahkan: ia membina setiap preset serta beberapa kes
-sukar, dan gagal jika ada tepi terbuka, permukaan berulang, triangulasi tidak lengkap, atau
-isipadu negatif (normal terbalik).
+Jalankan `npm run check:geometry` untuk mengesahkan: ia membina setiap preset, beberapa kes sukar
+dan beberapa plat berbilang tag, dan gagal jika ada tepi terbuka, permukaan berulang, triangulasi
+tidak lengkap, atau isipadu negatif (normal terbalik).
+
+### Mod plat — seluruh senarai sebagai satu cetakan
+
+Mod senarai boleh pulangkan satu STL setiap nama, tetapi itu jarang yang dimahukan oleh orang
+yang mencetak senarai staf: mereka mahu buka satu fail, tekan cetak sekali, dan kembali kepada
+dulang penuh tag siap. `src/lib/nametag/plate.ts` mengira kedudukan setiap tag atas dandang.
+
+Pengepak memilih bilangan lajur dengan meletakkan seberapa banyak tag yang muat, kemudian
+mengambil kotak sempadan paling padat antara susunan yang meletakkan jumlah sama. Enam belas tag
+76 × 25 mm pada jarak 5 mm mendarat pada 2 lajur × 8 baris, kerana 157 × 235 mm membazir kurang
+ruang dandang berbanding 235 × 175 mm yang diperlukan oleh tiga lajur.
+
+Modul ini berkongsi antara kedua-dua belah, sama seperti susun atur teks: pelayar melukis
+pratonton plat dan melaporkan berapa banyak tag muat sekali cetak; pelayan menggunakan slot yang
+sama untuk meletakkan mesh. Senarai yang melebihi satu dandang dipecahkan kepada beberapa plat
+dan dipulangkan sebagai ZIP.
+
+Setiap tag dibina sekali sahaja dan dicap ke tempatnya, jadi nama yang diulang pada baris lain —
+cara meminta salinan tambahan — hanya menambah satu salinan memori, bukan triangulasi kedua.
+
+Satu perkara halus: jarak antara tag tidak boleh sifar. Rapatkan dua plat bucu tajam sehingga
+bersentuhan dan dinding sisinya jatuh pada bucu yang sama, meninggalkan permukaan berulang yang
+tiada penghiris patut diminta mentafsir — diukur 30 tepi berulang untuk plat 2 × 2. `MIN_SPACING`
+menguatkuasakan 1 mm, dan `check:geometry` menyimpan kes yang meminta sifar supaya had itu tidak
+boleh hilang tanpa disedari.
 
 ### Data fon
 
@@ -90,7 +116,7 @@ Tiada kata laluan. Pembayaran mengeluarkan kunci lesen (`KKS-XXXX-…`) yang dis
 Blobs.
 
 - **Bayar Sekali** memberi satu kredit reka bentuk.
-- **Langganan Bulanan** membenarkan penjanaan tanpa had dan membuka mod senarai.
+- **Langganan Bulanan** membenarkan penjanaan tanpa had dan membuka mod senarai serta mod plat.
 
 Setiap reka bentuk dicincang secara kanonik. Memuat turun semula reka bentuk yang **sama** tidak
 menggunakan kredit lagi; menukar walau satu huruf menghasilkan reka bentuk baharu. Hanya cincangan
@@ -122,15 +148,15 @@ netlify dev           # http://localhost:8888
 | :-- | :-- |
 | `npm run dev` | Pelayan pembangunan |
 | `npm run build` | Bina untuk pengeluaran |
-| `npm run check:geometry` | Sahkan mesh setiap preset tertutup rapat; tulis STL contoh ke `.stl-samples/` |
+| `npm run check:geometry` | Sahkan mesh setiap preset dan plat tertutup rapat; tulis STL contoh ke `.stl-samples/` |
 | `npm run build:fonts` | Jana semula data glif daripada fail TTF |
 
 ### Pemeriksaan automatik
 
 `.github/workflows/ci.yml` menjalankan `astro check`, `npm run build` dan `npm run check:geometry`
-pada setiap pull request dan setiap tolakan ke `main`. Kesemua 16 fail STL — lima preset dan
-sebelas kes sukar — dilampirkan pada setiap larian, lulus atau gagal, jadi pengulas boleh
-membukanya sendiri dalam penghiris.
+pada setiap pull request dan setiap tolakan ke `main`. Kesemua 21 fail STL — lima preset, sebelas
+kes sukar dan lima plat berbilang tag — dilampirkan pada setiap larian, lulus atau gagal, jadi
+pengulas boleh membukanya sendiri dalam penghiris.
 
 ---
 
