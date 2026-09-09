@@ -2,9 +2,41 @@
 
 Perkakas digital untuk kerja tangan. Aplikasi pertama ialah **Penjana Nametag**: taip nama dan
 jawatan, dan dapat fail STL siap cetak untuk tag nama guru, penjawat awam atau baju korporat —
-lengkap dengan poket magnet, teks timbul atau ukir, dan bucu bulat.
+lengkap dengan poket magnet, teks timbul atau ukir, dan bucu bulat. Mod plat menyusun seluruh
+senarai staf atas dandang pencetak sebagai satu fail.
 
 Dibina dengan Astro, React, Tailwind + daisyUI, dan dihoskan di Netlify.
+
+---
+
+## Mula
+
+```bash
+nvm use          # Node 20
+npm install
+npm run dev      # http://localhost:4321
+```
+
+Tanpa konteks Netlify, storan lesen jatuh balik kepada fail JSON di bawah `.kakas-dev-data/`, jadi
+keseluruhan aliran beli → lesen → muat turun boleh diuji terus dengan `astro dev`.
+
+Untuk menguji dengan Netlify Blobs sebenar:
+
+```bash
+npm install netlify-cli@latest -g
+netlify link
+netlify dev      # http://localhost:8888
+```
+
+### Skrip
+
+| Perintah | Fungsi |
+| :-- | :-- |
+| `npm run dev` | Pelayan pembangunan |
+| `npm run build` | Bina untuk pengeluaran |
+| `npm run typecheck` | `astro check` |
+| `npm test` | Sahkan mesh setiap preset dan plat tertutup rapat |
+| `npm run build:fonts` | Jana semula data glif daripada fail TTF |
 
 ---
 
@@ -36,164 +68,29 @@ Dibina dengan Astro, React, Tailwind + daisyUI, dan dihoskan di Netlify.
 
 ---
 
-## Cara ia berfungsi
+## Dokumentasi
 
-### Geometri dijana di pelayan
-
-Susun atur teks (`src/lib/nametag/layout.ts`) berjalan di kedua-dua belah: pelayar
-menggunakannya untuk melukis pratonton SVG, pelayan menggunakannya untuk membina mesh. Sebab itu
-pratonton bukan anggaran — ia bentuk huruf yang sama, pada kedudukan yang sama.
-
-Yang **tidak** dihantar ke pelayar ialah pembinaan mesh (`src/lib/nametag/model.ts`) dan penulis
-STL. Itu bahagian yang dibayar, jadi ia hidup di belakang semakan lesen sahaja.
-
-### Mesh tertutup, bukan longgokan pepejal bertindih
-
-Teks dan bingkai dijahit terus ke dalam permukaan plat, bukan diletak di atasnya: muka plat
-membawa lubang bagi setiap garis luar relief, dan kaunter huruf seperti O dan A kekal pada
-ketinggian muka sebagai pulau tersendiri. Hasilnya satu permukaan tertutup, bukan beberapa
-pepejal bertindih yang bergantung pada penghiris untuk mencantumkannya.
-
-Tiga perkara yang perlu ditangani untuk itu berjaya, dan setiap satunya ada dalam kod:
-
-1. **Sarang mengikut kandungan, bukan arah putaran.** Bingkai mengandungi teks, huruf
-   mengandungi kaunternya sendiri. `nestRings()` mengira kedalaman sarang supaya sebarang
-   susunan berlapis keluar dengan betul.
-2. **Triangulasi disahkan.** earcut menyambung setiap lubang dengan titi mendatar. Teks duduk
-   pada garis dasar yang sama, jadi titi antara huruf menjadi kolinear tepat dan bucu tercicir —
-   yang mengoyakkan permukaan. `triangulate()` menyemak sempadan hasil terhadap gelung asal dan
-   mencuba semula pada salinan yang diputar sehingga ia sepadan. Hanya indeks digunakan, jadi
-   koordinat yang dipancarkan kekal sama tepat.
-3. **Garis luar bertindih disatukan.** Huruf seperti Ç melukis tanda cedilla sebagai kontur
-   berasingan yang bertindih dengan badan huruf. Kelompok yang bertindih sahaja melalui operasi
-   union boolean; teks biasa tidak membayar kosnya.
-
-Jalankan `npm run check:geometry` untuk mengesahkan: ia membina setiap preset, beberapa kes sukar
-dan beberapa plat berbilang tag, dan gagal jika ada tepi terbuka, permukaan berulang, triangulasi
-tidak lengkap, atau isipadu negatif (normal terbalik).
-
-### Mod plat — seluruh senarai sebagai satu cetakan
-
-Mod senarai boleh pulangkan satu STL setiap nama, tetapi itu jarang yang dimahukan oleh orang
-yang mencetak senarai staf: mereka mahu buka satu fail, tekan cetak sekali, dan kembali kepada
-dulang penuh tag siap. `src/lib/nametag/plate.ts` mengira kedudukan setiap tag atas dandang.
-
-Pengepak memilih bilangan lajur dengan meletakkan seberapa banyak tag yang muat, kemudian
-mengambil kotak sempadan paling padat antara susunan yang meletakkan jumlah sama. Enam belas tag
-76 × 25 mm pada jarak 5 mm mendarat pada 2 lajur × 8 baris, kerana 157 × 235 mm membazir kurang
-ruang dandang berbanding 235 × 175 mm yang diperlukan oleh tiga lajur.
-
-Modul ini berkongsi antara kedua-dua belah, sama seperti susun atur teks: pelayar melukis
-pratonton plat dan melaporkan berapa banyak tag muat sekali cetak; pelayan menggunakan slot yang
-sama untuk meletakkan mesh. Senarai yang melebihi satu dandang dipecahkan kepada beberapa plat
-dan dipulangkan sebagai ZIP.
-
-Setiap tag dibina sekali sahaja dan dicap ke tempatnya, jadi nama yang diulang pada baris lain —
-cara meminta salinan tambahan — hanya menambah satu salinan memori, bukan triangulasi kedua.
-
-Satu perkara halus: jarak antara tag tidak boleh sifar. Rapatkan dua plat bucu tajam sehingga
-bersentuhan dan dinding sisinya jatuh pada bucu yang sama, meninggalkan permukaan berulang yang
-tiada penghiris patut diminta mentafsir — diukur 30 tepi berulang untuk plat 2 × 2. `MIN_SPACING`
-menguatkuasakan 1 mm, dan `check:geometry` menyimpan kes yang meminta sifar supaya had itu tidak
-boleh hilang tanpa disedari.
-
-### Data fon
-
-`scripts/build-font-data.mjs` mengekstrak garis luar glif Roboto dan Roboto Condensed menjadi
-JSON padat yang dikomit ke dalam repo. Hasilnya tiada penghurai fon diperlukan semasa jalanan —
-tidak di pelayar, tidak di fungsi pelayan. Jalankan semula dengan:
-
-```bash
-npm run build:fonts
-```
-
-Fon sumber (Apache-2.0) dimuat turun ke `.fonts-cache/` secara automatik jika tiada. Lihat
-`src/lib/nametag/fonts/LICENSE-FONTS.md`.
-
-### Lesen dan kredit
-
-Tiada kata laluan. Pembayaran mengeluarkan kunci lesen (`KKS-XXXX-…`) yang disimpan dalam Netlify
-Blobs.
-
-- **Bayar Sekali** memberi satu kredit reka bentuk.
-- **Langganan Bulanan** membenarkan penjanaan tanpa had dan membuka mod senarai serta mod plat.
-
-Setiap reka bentuk dicincang secara kanonik. Memuat turun semula reka bentuk yang **sama** tidak
-menggunakan kredit lagi; menukar walau satu huruf menghasilkan reka bentuk baharu. Hanya cincangan
-yang disimpan — teks nama tidak pernah ditulis ke storan.
+| Dokumen | Isi |
+| :-- | :-- |
+| [`docs/architecture.md`](docs/architecture.md) | Susunan folder, di mana kod berjalan, cara mesh tertutup dibina, mod plat, data fon |
+| [`docs/billing.md`](docs/billing.md) | Lesen dan kredit, konfigurasi Stripe, keselamatan, mod demo, menambah gerbang FPX |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Cara bekerja pada kod ini, dan peraturan yang bukan sekadar gaya |
+| [`CHANGELOG.md`](CHANGELOG.md) | Apa yang berubah |
 
 ---
 
-## Menjalankan secara setempat
+## Pemeriksaan automatik
 
-```bash
-npm install
-npm run dev            # http://localhost:4321
-```
-
-Tanpa konteks Netlify, storan lesen jatuh balik kepada fail JSON di bawah `.kakas-dev-data/`,
-jadi keseluruhan aliran beli → lesen → muat turun boleh diuji terus dengan `astro dev`.
-
-Untuk menguji dengan Netlify Blobs sebenar:
-
-```bash
-npm install netlify-cli@latest -g
-netlify link
-netlify dev           # http://localhost:8888
-```
-
-### Skrip
-
-| Perintah | Fungsi |
-| :-- | :-- |
-| `npm run dev` | Pelayan pembangunan |
-| `npm run build` | Bina untuk pengeluaran |
-| `npm run check:geometry` | Sahkan mesh setiap preset dan plat tertutup rapat; tulis STL contoh ke `.stl-samples/` |
-| `npm run build:fonts` | Jana semula data glif daripada fail TTF |
-
-### Pemeriksaan automatik
-
-`.github/workflows/ci.yml` menjalankan `astro check`, `npm run build` dan `npm run check:geometry`
-pada setiap pull request dan setiap tolakan ke `main`. Kesemua 21 fail STL — lima preset, sebelas
-kes sukar dan lima plat berbilang tag — dilampirkan pada setiap larian, lulus atau gagal, jadi
-pengulas boleh membukanya sendiri dalam penghiris.
-
----
-
-## Pembayaran
-
-Salin `.env.example` kepada `.env` dan isi kunci Stripe:
-
-| Pemboleh ubah | Fungsi |
-| :-- | :-- |
-| `STRIPE_SECRET_KEY` | Kunci rahsia Stripe. Tanpa ini, tapak berjalan dalam mod demo. |
-| `STRIPE_WEBHOOK_SECRET` | Rahsia penandatanganan webhook (`whsec_…`). |
-| `URL` | Asal tapak, untuk membina URL kembali. Ditetapkan sendiri oleh Netlify. |
-
-Arahkan webhook Stripe ke `https://<tapak-anda>/api/billing/webhook` dan langgan
-`checkout.session.completed`, `customer.subscription.*` dan `invoice.*`.
-
-Harga ditetapkan dalam `src/lib/billing/plans.ts` sebagai sen (`1500` = RM 15.00), dan Stripe
-Checkout dibuat menggunakan `price_data` — tiada objek Price perlu dicipta terlebih dahulu.
-
-### Mod demo
-
-Tanpa `STRIPE_SECRET_KEY`, `/api/billing/checkout` memulangkan pautan kembali ke halaman
-kejayaan dan lesen dikeluarkan tanpa wang bertukar tangan. Lesen sedemikian ditanda `demo: true`
-dan dilabel dengan jelas di setiap tempat ia dipaparkan. Ini untuk pembangunan dan demonstrasi
-sahaja — jangan sekali-kali menghantar tapak ke pengeluaran tanpa kunci sebenar.
-
-### Menambah gerbang pembayaran Malaysia
-
-FPX (toyyibPay, Billplz, Chip) lebih lazim daripada kad di Malaysia. Titik sambungannya ialah
-`startCheckout()` dan `claim*()` dalam `src/lib/billing/checkout.ts`: kedua-duanya sudah
-berasingan daripada logik lesen, jadi gerbang baharu hanya perlu memulangkan URL pembayaran dan,
-apabila selesai, memanggil laluan pengeluaran lesen yang sama. Langganan berulang masih memerlukan
-gerbang yang menyokongnya.
+`.github/workflows/ci.yml` menjalankan `npm run typecheck`, `npm run build` dan `npm test` pada
+setiap pull request dan setiap tolakan ke `main`. Kesemua 21 fail STL — lima preset, sebelas kes
+sukar dan lima plat berbilang tag — dilampirkan pada setiap larian, lulus atau gagal, jadi pengulas
+boleh membukanya sendiri dalam penghiris.
 
 ---
 
 ## Nota
 
-KAKAS ialah perkhidmatan swasta dan tiada kaitan dengan mana-mana agensi kerajaan. Reka bentuk
-yang dijana perlu mematuhi garis panduan pemakaian jabatan masing-masing.
+KAKAS ialah perkhidmatan swasta dan tiada kaitan dengan mana-mana agensi kerajaan. Reka bentuk yang
+dijana perlu mematuhi garis panduan pemakaian jabatan masing-masing.
+
+Lesen: proprietari — lihat [`LICENSE`](LICENSE).

@@ -1,18 +1,23 @@
 /**
- * Development check for the STL builder. Builds every preset plus a few awkward
- * combinations, verifies the mesh is a closed surface, and writes sample STLs.
+ * The test suite that matters for this product.
  *
- *   npm run check:geometry
+ * The generator's whole job is to hand someone a file their slicer will accept, so the check
+ * that counts is not "did the function return" but "is the surface closed". Every preset, a set
+ * of awkward text and mounting combinations, and several multi-tag plates are built and verified
+ * to be watertight solids with outward normals. Sample STLs are written out so a failure can be
+ * opened and looked at rather than guessed about.
+ *
+ *   npm test
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { Mesh } from '../src/lib/nametag/geometry/mesh';
 import { loadFonts } from '../src/lib/nametag/fonts';
 import { fontIdsUsed, layoutTag } from '../src/lib/nametag/layout';
 import { buildNametag } from '../src/lib/nametag/model';
 import { arrangePlate } from '../src/lib/nametag/plate';
 import type { PlateOptions } from '../src/lib/nametag/plate';
 import { PRESETS } from '../src/lib/nametag/presets';
-import { Mesh } from '../src/lib/nametag/geometry/mesh';
 import type { NametagSpec } from '../src/lib/nametag/types';
 
 const outDir = process.env.STL_OUT ?? '.stl-samples';

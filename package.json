@@ -8,7 +8,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "check:geometry": "esbuild scripts/check-geometry.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/check-geometry.mjs --log-level=warning && node node_modules/.cache/check-geometry.mjs",
+    "test": "npm run test:geometry",
+    "test:geometry": "esbuild tests/geometry.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/geometry.mjs --log-level=warning && node node_modules/.cache/geometry.mjs",
+    "typecheck": "astro check",
     "build:fonts": "node scripts/build-font-data.mjs"
   },
   "dependencies": {

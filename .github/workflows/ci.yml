@@ -27,21 +27,21 @@ jobs:
         run: npm ci
 
       - name: Typecheck
-        run: npx astro check
+        run: npm run typecheck
 
       - name: Build
         run: npm run build
 
       # The generator is the product, so the mesh check is the test suite that matters:
-      # it builds every preset plus a set of awkward cases and fails on an open edge, a
-      # repeated surface, an incomplete triangulation or an inverted normal.
-      - name: Nametag mesh check
+      # it builds every preset, a set of awkward cases and several plates, and fails on an
+      # open edge, a repeated surface, an incomplete triangulation or an inverted normal.
+      - name: Test - nametag meshes
         id: mesh
         # The checker writes to .stl-samples by default, and upload-artifact's glob skips
         # dot-directories - which silently produced an empty artifact. Write somewhere visible.
         env:
           STL_OUT: stl-samples
-        run: npm run check:geometry
+        run: npm test
 
       # Attach every tag this run produced - the five presets, the eleven awkward cases and
       # the five multi-tag plates - so a reviewer can open them in a slicer instead of taking

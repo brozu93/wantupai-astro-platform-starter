@@ -5,7 +5,7 @@ import { maxEngraveDepth, mountingLayout } from '../../lib/nametag/mounting';
 import { BEDS, DEFAULT_BED, PLATE_LIMITS, arrangePlate, findBed } from '../../lib/nametag/plate';
 import { DEFAULT_PRESET, LIMITS, PRESETS } from '../../lib/nametag/presets';
 import type { FontData, FontId, Mounting, NametagSpec, Relief, TagLayout, TagLine } from '../../lib/nametag/types';
-import { NumberField, Section, Segmented, SelectField, TextField, Toggle } from './controls';
+import { NumberField, Section, Segmented, SelectField, TextField, Toggle } from '../ui/controls';
 import PaywallDialog from './PaywallDialog';
 import PlatePreview from './PlatePreview';
 import TagPreview from './TagPreview';
