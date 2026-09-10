@@ -1,8 +1,12 @@
 import { useState } from 'react';
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
 import { PLANS, formatPrice } from '../../lib/billing/plans';
 import type { PlanId } from '../../lib/billing/plans';
 
 interface Props {
+    lang?: Lang;
     open: boolean;
     onClose: () => void;
     /** Explains why the dialog opened, e.g. credits ran out. */
@@ -10,7 +14,8 @@ interface Props {
 }
 
 /** Turns a finished design into a purchase, without leaving the studio until Stripe takes over. */
-export default function PaywallDialog({ open, onClose, reason }: Props) {
+export default function PaywallDialog({ open, onClose, reason, lang = DEFAULT_LANG }: Props) {
+    const t = useTranslations(lang);
     const [plan, setPlan] = useState<PlanId>('sekali');
     const [email, setEmail] = useState('');
     const [busy, setBusy] = useState(false);
@@ -29,7 +34,7 @@ export default function PaywallDialog({ open, onClose, reason }: Props) {
                 body: JSON.stringify({ plan, email })
             });
             const data = (await response.json()) as { ok: boolean; url?: string; error?: string };
-            if (!response.ok || !data.url) throw new Error(data.error ?? 'Gagal memulakan pembayaran.');
+            if (!response.ok || !data.url) throw new Error(data.error ?? t('picker.failed'));
             window.location.href = data.url;
         } catch (caught) {
             setError((caught as Error).message);
@@ -45,7 +50,7 @@ export default function PaywallDialog({ open, onClose, reason }: Props) {
                         <h2 id="paywall-title" className="text-xl font-bold">
                             Buka kunci muat turun STL
                         </h2>
-                        <p className="mt-1 text-sm text-graphite-300">{reason ?? 'Reka bentuk anda sudah siap. Pilih cara bayaran untuk memuat turun fail STL.'}</p>
+                        <p className="mt-1 text-sm text-graphite-300">{reason ?? t('paywall.body')}</p>
                     </div>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Tutup">
                         ✕
@@ -54,7 +59,7 @@ export default function PaywallDialog({ open, onClose, reason }: Props) {
 
                 <form onSubmit={submit} className="space-y-5">
                     <fieldset className="grid gap-3 sm:grid-cols-2">
-                        <legend className="sr-only">Pilih pelan</legend>
+                        <legend className="sr-only">{t('paywall.choose')}</legend>
                         {PLANS.map((option) => (
                             <label
                                 key={option.id}
@@ -71,20 +76,20 @@ export default function PaywallDialog({ open, onClose, reason }: Props) {
                                     onChange={() => setPlan(option.id)}
                                 />
                                 <span className="flex items-baseline justify-between gap-2">
-                                    <span className="font-semibold">{option.label}</span>
+                                    <span className="font-semibold">{t(option.labelKey)}</span>
                                     <span className="tabular font-bold text-brass-300">
                                         {formatPrice(option.amount)}
-                                        {option.mode === 'subscription' && <span className="text-xs font-normal text-graphite-400">/bulan</span>}
+                                        {option.mode === 'subscription' && <span className="text-xs font-normal text-graphite-400">{t('picker.perMonth')}</span>}
                                     </span>
                                 </span>
-                                <span className="mt-1 block text-xs text-graphite-300">{option.tagline}</span>
+                                <span className="mt-1 block text-xs text-graphite-300">{t(option.taglineKey)}</span>
                                 <ul className="mt-3 space-y-1 text-xs text-graphite-300">
-                                    {option.features.slice(0, 3).map((feature) => (
-                                        <li key={feature} className="flex gap-2">
+                                    {option.featureKeys.slice(0, 3).map((key) => (
+                                        <li key={key} className="flex gap-2">
                                             <span aria-hidden="true" className="text-brass-400">
                                                 ✓
                                             </span>
-                                            {feature}
+                                            {t(key)}
                                         </li>
                                     ))}
                                 </ul>
@@ -93,7 +98,7 @@ export default function PaywallDialog({ open, onClose, reason }: Props) {
                     </fieldset>
 
                     <label className="block">
-                        <span className="field-label">E-mel untuk resit dan kunci lesen</span>
+                        <span className="field-label">{t('paywall.emailLegend')}</span>
                         <input
                             type="email"
                             required
@@ -109,7 +114,7 @@ export default function PaywallDialog({ open, onClose, reason }: Props) {
 
                     <div className="flex flex-wrap items-center gap-3">
                         <button type="submit" className="btn btn-primary" disabled={busy}>
-                            {busy ? 'Menyediakan…' : 'Teruskan ke pembayaran'}
+                            {busy ? t('picker.preparing') : t('paywall.continue')}
                         </button>
                         <a href="/harga" className="text-sm text-graphite-300 underline underline-offset-4">
                             Lihat perbandingan penuh

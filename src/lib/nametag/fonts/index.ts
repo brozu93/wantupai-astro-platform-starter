@@ -3,17 +3,14 @@ import { FONT_IDS } from '../types';
 
 export interface FontOption {
     id: FontId;
-    label: string;
-    /** Rough width factor versus the regular sans, used only for UI hints. */
-    note: string;
 }
 
 export const FONT_OPTIONS: FontOption[] = [
-    { id: 'sans-bold', label: 'Sans Tebal', note: 'Pilihan biasa untuk nama' },
-    { id: 'sans-medium', label: 'Sans Sederhana', note: 'Lebih ringan daripada tebal' },
-    { id: 'sans-regular', label: 'Sans Biasa', note: 'Sesuai untuk jawatan' },
-    { id: 'narrow-bold', label: 'Sempit Tebal', note: 'Untuk nama yang panjang' },
-    { id: 'narrow-regular', label: 'Sempit Biasa', note: 'Untuk baris jabatan panjang' }
+    { id: 'sans-bold' },
+    { id: 'sans-medium' },
+    { id: 'sans-regular' },
+    { id: 'narrow-bold' },
+    { id: 'narrow-regular' }
 ];
 
 const cache = new Map<FontId, FontData>();

@@ -1,3 +1,6 @@
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { translate } from '../../i18n/ui';
 import { LANYARD_ZONE } from './mounting';
 import { LIMITS } from './presets';
 import { applyTransform, inkAbove, inkBelow, measureLine, sanitiseForFont } from './text';
@@ -33,7 +36,7 @@ export function textArea(spec: NametagSpec): { width: number; height: number; ce
  *
  * Coordinates are millimetres with the origin at the centre of the plate and Y pointing up.
  */
-export function layoutTag(spec: NametagSpec, fonts: Map<FontId, FontData>): TagLayout {
+export function layoutTag(spec: NametagSpec, fonts: Map<FontId, FontData>, lang: Lang = DEFAULT_LANG): TagLayout {
     const warnings: string[] = [];
     const area = textArea(spec);
 
@@ -77,7 +80,7 @@ export function layoutTag(spec: NametagSpec, fonts: Map<FontId, FontData>): TagL
         const gaps = Math.max(0, measured.length - 1) * spec.lineGap;
         const ink = natural - gaps;
         verticalScale = ink > 0 ? Math.max(0.35, (area.height - gaps) / ink) : 1;
-        warnings.push('Teks dikecilkan supaya muat pada ketinggian plat. Pertimbang plat yang lebih tinggi.');
+        warnings.push(translate(lang, 'warn.verticalShrink'));
     }
 
     const total = stackHeight(verticalScale);
@@ -101,8 +104,8 @@ export function layoutTag(spec: NametagSpec, fonts: Map<FontId, FontData>): TagL
             const severe = size < m.requested * 0.85 && !m.font.id.startsWith('narrow');
             warnings.push(
                 severe
-                    ? `Baris "${label}" terpaksa dikecilkan banyak. Cuba fon "Sempit Tebal" atau plat yang lebih lebar.`
-                    : `Baris "${label}" dikecilkan sedikit supaya muat pada lebar plat.`
+                    ? translate(lang, 'warn.lineShrunkHard', { label })
+                    : translate(lang, 'warn.lineShrunkSlight', { label })
             );
         }
 

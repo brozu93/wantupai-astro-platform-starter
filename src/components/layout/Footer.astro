@@ -1,29 +1,33 @@
 ---
+import { langFromUrl, path } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
 import Logo from '../ui/Logo.astro';
 
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
 const year = new Date().getFullYear();
 
 const columns = [
     {
-        title: 'Perkakas',
+        title: t('footer.tools'),
         links: [
-            { label: 'Penjana Nametag', href: '/apps/nametag' },
-            { label: 'Semua apps', href: '/apps' },
-            { label: 'Panduan cetakan', href: '/panduan' }
+            { label: t('nav.nametag'), href: path('nametag', lang) },
+            { label: t('footer.allApps'), href: path('apps', lang) },
+            { label: t('footer.printGuide'), href: path('guide', lang) }
         ]
     },
     {
-        title: 'Akaun',
+        title: t('footer.account'),
         links: [
-            { label: 'Harga', href: '/harga' },
-            { label: 'Semak lesen', href: '/akaun' }
+            { label: t('nav.pricing'), href: path('pricing', lang) },
+            { label: t('footer.checkLicence'), href: path('account', lang) }
         ]
     },
     {
-        title: 'Rasmi',
+        title: t('footer.official'),
         links: [
-            { label: 'Terma & bayaran balik', href: '/terma' },
-            { label: 'Privasi', href: '/privasi' }
+            { label: t('footer.terms'), href: path('terms', lang) },
+            { label: t('footer.privacy'), href: path('privacy', lang) }
         ]
     }
 ];
@@ -33,9 +37,7 @@ const columns = [
     <div class="mx-auto grid max-w-[1500px] gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.5fr_repeat(3,1fr)]">
         <div>
             <Logo height={28} />
-            <p class="mt-4 max-w-xs text-sm text-graphite-300">
-                Perkakas digital untuk kerja tangan — direka di Malaysia untuk pengguna pencetak 3D dan mesin ukir.
-            </p>
+            <p class="mt-4 max-w-xs text-sm text-graphite-300">{t('footer.tagline')}</p>
         </div>
 
         {
@@ -58,11 +60,8 @@ const columns = [
 
     <div class="mx-auto max-w-[1500px] space-y-2 border-t border-white/10 px-5 py-6 text-xs text-graphite-400 sm:px-8">
         <p>
-            KAKAS ialah perkhidmatan swasta dan <strong class="font-semibold text-graphite-300">tiada kaitan dengan mana-mana agensi kerajaan</strong>. Reka
-            bentuk yang dijana perlu mematuhi garis panduan pemakaian jabatan anda sendiri.
+            {t('footer.disclaimerBefore')}<strong class="font-semibold text-graphite-300">{t('footer.disclaimerStrong')}</strong>{t('footer.disclaimerAfter')}
         </p>
-        <p>
-            Bentuk huruf menggunakan Roboto dan Roboto Condensed (Apache License 2.0). © {year} KAKAS.
-        </p>
+        <p>{t('footer.fonts', { year })}</p>
     </div>
 </footer>

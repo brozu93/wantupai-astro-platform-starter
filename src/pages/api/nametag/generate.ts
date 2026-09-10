@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { toLang } from '../../../i18n';
+import { useTranslations } from '../../../i18n/ui';
 import { attachment, fail, json, readJson, toBody } from '../../../lib/api/respond';
 import { checkEntitlement, publicLicence, readLicence, recordGeneration } from '../../../lib/billing/licences';
 import { generateTag } from '../../../lib/nametag/generate';
@@ -15,15 +17,18 @@ export const prerender = false;
  * behind a licence check.
  */
 export const POST: APIRoute = async ({ request }) => {
-    let body: { licenceKey?: string; spec?: unknown };
+    let body: { licenceKey?: string; spec?: unknown; lang?: string };
     try {
         body = (await readJson(request)) as typeof body;
     } catch (error) {
         return fail((error as Error).message);
     }
 
+    const lang = toLang(body.lang);
+    const t = useTranslations(lang);
+
     const licence = await readLicence(String(body.licenceKey ?? ''));
-    if (!licence) return fail('Kunci lesen tidak sah. Semak semula atau beli lesen di /harga.', 401);
+    if (!licence) return fail(t('api.licence.invalidBuy'), 401);
 
     let spec: NametagSpec;
     try {
@@ -39,7 +44,7 @@ export const POST: APIRoute = async ({ request }) => {
         return fail(entitlement.reason ?? 'Lesen ini tidak membenarkan penjanaan.', 402, { licence: publicLicence(licence) });
     }
 
-    const tag = await generateTag(spec);
+    const tag = await generateTag(spec, lang);
     const updated = await recordGeneration(licence, hash, entitlement.consumesCredit);
 
     return new Response(toBody(tag.stl), {

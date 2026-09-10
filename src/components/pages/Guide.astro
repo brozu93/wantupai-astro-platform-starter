@@ -1,0 +1,65 @@
+---
+import { langFromUrl, path } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const settings = [1, 2, 3, 4, 5, 6, 7] as const;
+const twoColour = [1, 2, 3] as const;
+---
+
+<Layout title={t('guide.title')} description={t('guide.description')}>
+    <section class="prose-links py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">{t('guide.eyebrow')}</p>
+        <h1 class="mt-2">{t('guide.heading')}</h1>
+        <p class="mt-4 max-w-prose text-graphite-300">{t('guide.lede')}</p>
+
+        <h2 class="mt-12">{t('guide.settings.title')}</h2>
+        <div class="mt-5 overflow-x-auto">
+            <table class="table w-full">
+                <tbody>
+                    {
+                        settings.map((n) => (
+                            <tr class="border-white/10">
+                                <th class="w-48 align-top font-semibold text-base-content">{t(`guide.set${n}.label` as 'guide.set1.label')}</th>
+                                <td class="text-graphite-300">{t(`guide.set${n}.value` as 'guide.set1.value')}</td>
+                            </tr>
+                        ))
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="mt-12">{t('guide.twoColour.title')}</h2>
+        <p class="mt-3 max-w-prose text-graphite-300">{t('guide.twoColour.lede')}</p>
+        <ol class="mt-4 max-w-prose list-decimal space-y-2 pl-5 text-graphite-300">
+            {twoColour.map((n) => <li>{t(`guide.twoColour.${n}` as 'guide.twoColour.1')}</li>)}
+        </ol>
+
+        <h2 class="mt-12">{t('guide.magnet.title')}</h2>
+        <p class="mt-3 max-w-prose text-graphite-300">
+            {t('guide.magnet.p1Before')}<strong class="text-base-content">{t('guide.magnet.p1Strong')}</strong>{t('guide.magnet.p1After')}
+        </p>
+        <p class="mt-3 max-w-prose text-graphite-300">{t('guide.magnet.p2')}</p>
+
+        <h2 class="mt-12">{t('guide.blurry.title')}</h2>
+        <ul class="mt-4 max-w-prose list-disc space-y-2 pl-5 text-graphite-300">
+            <li>{t('guide.blurry.1')}</li>
+            <li>{t('guide.blurry.2Before')}<strong class="text-base-content">{t('guide.blurry.2Strong')}</strong>{t('guide.blurry.2After')}</li>
+            <li>{t('guide.blurry.3')}</li>
+            <li>{t('guide.blurry.4')}</li>
+        </ul>
+
+        <h2 class="mt-12">{t('guide.laser.title')}</h2>
+        <p class="mt-3 max-w-prose text-graphite-300">
+            {t('guide.laser.before')}<strong class="text-base-content">{t('guide.laser.strong')}</strong>{t('guide.laser.after')}
+        </p>
+
+        <div class="panel mt-12 flex flex-wrap items-center justify-between gap-4 p-6">
+            <p class="text-graphite-300">{t('guide.ready')}</p>
+            <a href={path('nametag', lang)} class="btn btn-primary">{t('cta.openStudio')}</a>
+        </div>
+    </section>
+</Layout>

@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import type { Translate } from '../../i18n/ui';
+import { useTranslations } from '../../i18n/ui';
 
 const LICENCE_STORAGE_KEY = 'kakas.licence';
 
@@ -14,11 +18,24 @@ interface LicenceView {
     subscription: { status: string; currentPeriodEnd: string } | null;
 }
 
-const PLAN_LABELS: Record<string, string> = { sekali: 'Bayar Sekali', bulanan: 'Langganan Bulanan' };
-const STATUS_LABELS: Record<string, string> = { active: 'Aktif', past_due: 'Tertunggak', canceled: 'Dibatalkan' };
+/** Built per render, because the labels depend on the reader's language. */
+function planLabels(t: Translate): Record<string, string> {
+    return { sekali: t('plan.sekali.label'), bulanan: t('plan.bulanan.label') };
+}
+
+function statusLabels(t: Translate): Record<string, string> {
+    return { active: t('lookup.active'), past_due: t('lookup.pastDue'), canceled: t('lookup.cancelled') };
+}
+
+interface Props {
+    lang?: Lang;
+}
 
 /** Lets someone check what their key is good for, and stores it for the studio. */
-export default function LicenceLookup() {
+export default function LicenceLookup({ lang = DEFAULT_LANG }: Props) {
+    const t = useTranslations(lang);
+    const PLAN_LABELS = planLabels(t);
+    const STATUS_LABELS = statusLabels(t);
     const [input, setInput] = useState('');
     const [licence, setLicence] = useState<LicenceView | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -43,7 +60,7 @@ export default function LicenceLookup() {
                 body: JSON.stringify({ licenceKey: key })
             });
             const data = (await response.json()) as { ok: boolean; licence?: LicenceView; error?: string };
-            if (!response.ok || !data.licence) throw new Error(data.error ?? 'Kunci lesen tidak dijumpai.');
+            if (!response.ok || !data.licence) throw new Error(data.error ?? t('licence.notFound'));
             setLicence(data.licence);
             window.localStorage.setItem(LICENCE_STORAGE_KEY, data.licence.key);
         } catch (caught) {
@@ -64,7 +81,7 @@ export default function LicenceLookup() {
                 }}
             >
                 <label className="block">
-                    <span className="field-label">Kunci lesen</span>
+                    <span className="field-label">{t('lookup.licenceKey')}</span>
                     <input
                         type="text"
                         className="input input-bordered tabular w-full bg-graphite-900/70"
@@ -76,7 +93,7 @@ export default function LicenceLookup() {
                     />
                 </label>
                 <button type="submit" className="btn btn-primary" disabled={busy || input.trim() === ''}>
-                    {busy ? 'Menyemak…' : 'Semak lesen'}
+                    {busy ? t('licence.checking') : t('lookup.check')}
                 </button>
                 {error && <p className="rounded-lg bg-error/15 px-3 py-2 text-sm text-error">{error}</p>}
             </form>
@@ -86,24 +103,24 @@ export default function LicenceLookup() {
                     <h2 className="text-lg font-semibold">{PLAN_LABELS[licence.plan] ?? licence.plan}</h2>
                     <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                         <div>
-                            <dt className="text-graphite-400">Kunci</dt>
+                            <dt className="text-graphite-400">{t('lookup.key')}</dt>
                             <dd className="tabular break-all">{licence.key}</dd>
                         </div>
                         <div>
-                            <dt className="text-graphite-400">E-mel</dt>
+                            <dt className="text-graphite-400">{t('lookup.email')}</dt>
                             <dd>{licence.email}</dd>
                         </div>
                         <div>
-                            <dt className="text-graphite-400">Kredit berbaki</dt>
-                            <dd className="tabular">{licence.unlimited ? 'Tanpa had' : licence.credits}</dd>
+                            <dt className="text-graphite-400">{t('lookup.creditsLeft')}</dt>
+                            <dd className="tabular">{licence.unlimited ? t('lookup.unlimited') : licence.credits}</dd>
                         </div>
                         <div>
-                            <dt className="text-graphite-400">Reka bentuk dibeli</dt>
+                            <dt className="text-graphite-400">{t('lookup.designsBought')}</dt>
                             <dd className="tabular">{licence.designs}</dd>
                         </div>
                         {licence.subscription && (
                             <div className="sm:col-span-2">
-                                <dt className="text-graphite-400">Langganan</dt>
+                                <dt className="text-graphite-400">{t('lookup.subscription')}</dt>
                                 <dd>
                                     {STATUS_LABELS[licence.subscription.status] ?? licence.subscription.status} — sah sehingga{' '}
                                     {new Date(licence.subscription.currentPeriodEnd).toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}

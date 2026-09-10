@@ -1,3 +1,5 @@
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
 import { loadFonts } from './fonts';
 import { Mesh } from './geometry/mesh';
 import { fontIdsUsed, layoutTag } from './layout';
@@ -16,10 +18,10 @@ export interface GeneratedTag {
 }
 
 /** Builds the printable STL for a spec. This is the step the paywall protects. */
-export async function generateTag(spec: NametagSpec): Promise<GeneratedTag> {
+export async function generateTag(spec: NametagSpec, lang: Lang = DEFAULT_LANG): Promise<GeneratedTag> {
     const fonts = await loadFonts(fontIdsUsed(spec));
-    const layout = layoutTag(spec, fonts);
-    const { mesh, notes } = buildNametag(spec, layout);
+    const layout = layoutTag(spec, fonts, lang);
+    const { mesh, notes } = buildNametag(spec, layout, lang);
 
     const title = spec.lines[0]?.text ?? 'nametag';
     return {
@@ -55,6 +57,7 @@ export async function generatePlate(specs: NametagSpec[], options: PlateOptions)
     for (const spec of specs) for (const id of fontIdsUsed(spec)) fontIds.add(id);
     const fonts = await loadFonts([...fontIds]);
 
+    const lang: Lang = options.lang ?? DEFAULT_LANG;
     const arrangement = arrangePlate(specs[0].width, specs[0].height, specs.length, options);
     if (!arrangement.fits) throw new Error(arrangement.notes[0] ?? 'Tag tidak muat pada dandang.');
 
@@ -71,8 +74,8 @@ export async function generatePlate(specs: NametagSpec[], options: PlateOptions)
         const key = JSON.stringify(spec);
         let tag = cache.get(key);
         if (!tag) {
-            const layout = layoutTag(spec, fonts);
-            const built = buildNametag(spec, layout);
+            const layout = layoutTag(spec, fonts, lang);
+            const built = buildNametag(spec, layout, lang);
             for (const note of built.notes) notes.add(note);
             for (const warning of layout.warnings) warnings.add(warning);
             tag = built.mesh;

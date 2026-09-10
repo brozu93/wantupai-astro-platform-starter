@@ -1,26 +1,5 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
-import NametagStudio from '../../../components/nametag/NametagStudio';
+import NametagStudioPage from '../../../components/pages/NametagStudioPage.astro';
 ---
 
-<Layout
-    title="Studio Nametag"
-    description="Reka tag nama kerajaan, sekolah atau korporat dan muat turun fail STL siap cetak. Pratonton tepat, poket magnet, teks timbul atau ukir."
-    wide
->
-    <div class="py-8">
-        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">Perkakas KAKAS</p>
-                <h1 class="mt-1">Studio Nametag</h1>
-                <p class="mt-2 max-w-2xl text-graphite-300">
-                    Taip nama, pilih saiz, dan muat turun fail STL yang sudah siap untuk pencetak 3D anda. Pratonton di sebelah kanan dijana daripada geometri
-                    yang sama seperti fail akhir.
-                </p>
-            </div>
-            <a href="/panduan" class="btn btn-outline btn-sm border-white/20">Panduan cetakan</a>
-        </div>
-
-        <NametagStudio client:load />
-    </div>
-</Layout>
+<NametagStudioPage />

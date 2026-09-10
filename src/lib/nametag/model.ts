@@ -1,3 +1,6 @@
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { translate } from '../../i18n/ui';
 import { flattenPath } from './geometry/path';
 import type { Ring } from './geometry/path';
 import { Mesh } from './geometry/mesh';
@@ -57,7 +60,7 @@ export function framePolygon(spec: NametagSpec): Polygon | null {
  * cut into it. Text and frame are stitched into the face rather than dropped on top of it, so
  * the result is one closed surface instead of a pile of overlapping solids.
  */
-export function buildNametag(spec: NametagSpec, layout: TagLayout): BuildResult {
+export function buildNametag(spec: NametagSpec, layout: TagLayout, lang: Lang = DEFAULT_LANG): BuildResult {
     const mesh = new Mesh();
     const notes: string[] = [];
 
@@ -83,7 +86,7 @@ export function buildNametag(spec: NametagSpec, layout: TagLayout): BuildResult 
     const limit = maxEngraveDepth(spec, mounting);
     const depth = spec.relief === 'engrave' ? Math.min(spec.reliefDepth, limit) : spec.reliefDepth;
     if (spec.relief === 'engrave' && depth < spec.reliefDepth) {
-        notes.push(`Kedalaman ukiran dihadkan kepada ${depth.toFixed(1)} mm supaya plat tidak tertebuk oleh poket di belakang.`);
+        notes.push(translate(lang, 'note.engraveLimited', { depth: depth.toFixed(1) }));
     }
 
     // --- Face at Z = thickness -------------------------------------------------------
@@ -122,22 +125,27 @@ export function buildNametag(spec: NametagSpec, layout: TagLayout): BuildResult 
     for (const hole of through) mesh.addWalls(hole, 0, face);
 
     if (spec.relief === 'emboss') {
-        notes.push(`Untuk dua warna, tukar filamen (M600) pada ketinggian ${thickness.toFixed(1)} mm supaya teks berbeza warna daripada plat.`);
+        notes.push(translate(lang, 'note.twoColour', { height: thickness.toFixed(1) }));
     }
     if (mounting.magnets.length > 0) {
         const magnet = mounting.magnets[0];
         notes.push(
-            `Poket magnet dipotong Ø${(magnet.radius * 2).toFixed(1)} mm × ${magnet.depth.toFixed(1)} mm dalam — muat magnet Ø${spec.magnet.diameter} × ${spec.magnet.thickness} mm.`
+            translate(lang, 'note.magnetPocket', {
+                pocket: (magnet.radius * 2).toFixed(1),
+                depth: magnet.depth.toFixed(1),
+                diameter: spec.magnet.diameter,
+                thickness: spec.magnet.thickness
+            })
         );
     }
     if (mounting.pin) {
-        notes.push(`Lekuk peniti ${mounting.pin.length.toFixed(0)} × ${mounting.pin.width} × ${mounting.pin.depth} mm — lekatkan bar peniti dengan gam.`);
+        notes.push(translate(lang, 'note.pinRecess', { length: mounting.pin.length.toFixed(0), width: mounting.pin.width, depth: mounting.pin.depth }));
     }
     if (spec.mounting === 'magnet' && mounting.magnets.length === 0) {
-        notes.push('Magnet terlalu besar untuk plat ini. Besarkan plat atau kecilkan magnet.');
+        notes.push(translate(lang, 'note.magnetTooBig'));
     }
     if (thickness - mounting.deepestPocket < MIN_BACK_WALL + 0.2) {
-        notes.push('Dinding antara poket dan muka hadapan sangat nipis. Tambah ketebalan plat untuk hasil lebih kukuh.');
+        notes.push(translate(lang, 'note.thinBackWall'));
     }
 
     return { mesh, notes };

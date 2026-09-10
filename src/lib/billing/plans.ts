@@ -1,11 +1,11 @@
 /** What KAKAS sells, and what each purchase unlocks. */
 
+import type { UiKey } from '../../i18n/ui';
+
 export type PlanId = 'sekali' | 'bulanan';
 
 export interface Plan {
     id: PlanId;
-    label: string;
-    tagline: string;
     /** Price in sen (1/100 ringgit), so nothing is ever stored as a float. */
     amount: number;
     currency: 'myr';
@@ -13,45 +13,40 @@ export interface Plan {
     mode: 'payment' | 'subscription';
     /** Design credits granted on purchase. Undefined means unlimited. */
     credits?: number;
-    features: string[];
-    /** Shown on the pricing card as the most common reason to pick this plan. */
-    bestFor: string;
+    /**
+     * Display copy lives in the string table, not here.
+     *
+     * A plan is the same commercial object in either language - same price, same entitlement -
+     * so what changes is only how it is described. Keeping keys rather than sentences means the
+     * name on a Stripe receipt follows the language the buyer was reading.
+     */
+    labelKey: UiKey;
+    taglineKey: UiKey;
+    bestForKey: UiKey;
+    featureKeys: UiKey[];
 }
 
 export const PLANS: Plan[] = [
     {
         id: 'sekali',
-        label: 'Bayar Sekali',
-        tagline: 'Satu reka bentuk, guna selamanya',
         amount: 1500,
         currency: 'myr',
         mode: 'payment',
         credits: 1,
-        bestFor: 'Seorang guru atau staf yang perlukan satu tag sahaja',
-        features: [
-            '1 kredit reka bentuk STL',
-            'Muat turun semula reka bentuk yang sama percuma',
-            'Semua saiz, fon, timbul atau ukir',
-            'Poket magnet, peniti atau lubang tali',
-            'Guna untuk cetakan sendiri, selamanya'
-        ]
+        labelKey: 'plan.sekali.label',
+        taglineKey: 'plan.sekali.tagline',
+        bestForKey: 'plan.sekali.bestFor',
+        featureKeys: ['plan.sekali.f1', 'plan.sekali.f2', 'plan.sekali.f3', 'plan.sekali.f4', 'plan.sekali.f5']
     },
     {
         id: 'bulanan',
-        label: 'Langganan Bulanan',
-        tagline: 'STL tanpa had untuk sekolah dan bisnes',
         amount: 2900,
         currency: 'myr',
         mode: 'subscription',
-        bestFor: 'Sekolah, koperasi dan pengusaha cetakan 3D',
-        features: [
-            'Reka bentuk STL tanpa had',
-            'Mod senarai: satu fail ZIP untuk seluruh staf',
-            'Mod plat: seluruh senarai tersusun atas dandang, satu kali cetak',
-            'Semua ciri Bayar Sekali',
-            'Lesen guna komersial - boleh jual tag yang dicetak',
-            'Batal bila-bila masa'
-        ]
+        labelKey: 'plan.bulanan.label',
+        taglineKey: 'plan.bulanan.tagline',
+        bestForKey: 'plan.bulanan.bestFor',
+        featureKeys: ['plan.bulanan.f1', 'plan.bulanan.f2', 'plan.bulanan.f3', 'plan.bulanan.f4', 'plan.bulanan.f5', 'plan.bulanan.f6']
     }
 ];
 
@@ -66,6 +61,6 @@ export function formatPrice(amount: number): string {
 
 /** What someone gets without paying anything. */
 export const FREE_TIER = {
-    label: 'Percuma',
-    features: ['Reka dan lihat pratonton penuh', 'Muat turun STL contoh untuk uji tetapan pencetak', 'Semua preset dan panduan cetakan']
-} as const;
+    labelKey: 'plan.free.label',
+    featureKeys: ['plan.free.f1', 'plan.free.f2', 'plan.free.f3']
+} as const satisfies { labelKey: UiKey; featureKeys: readonly UiKey[] };

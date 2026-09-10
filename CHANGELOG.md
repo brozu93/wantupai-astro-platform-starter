@@ -6,6 +6,12 @@ Format berdasarkan [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Ditambah
 
+- **Dwibahasa.** Bahasa Malaysia di akar, English di bawah `/en/`, dengan slug diterjemah
+  (`/harga` ↔ `/en/pricing`) dan pemilih bahasa pada setiap halaman. Setiap halaman
+  mengisytiharkan pasangannya melalui `hreflang`.
+- Mesej pelayan mengikut bahasa pemanggil: ralat API, nota cetakan yang dipulangkan bersama
+  fail, amaran susun atur, dan nama produk pada resit Stripe.
+
 - **Mod plat.** Seluruh senarai nama disusun atas dandang pencetak dan dipulangkan sebagai satu
   STL, bukan satu fail bagi setiap nama. `POST /api/nametag/plate`. Senarai yang melebihi satu
   dandang dipecahkan kepada beberapa plat dan dihantar sebagai ZIP.

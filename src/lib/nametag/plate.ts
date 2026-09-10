@@ -9,6 +9,10 @@
  * many tags fit on a print; the server uses the same slots to place the meshes.
  */
 
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { translate } from '../../i18n/ui';
+
 export interface Bed {
     id: string;
     label: string;
@@ -33,6 +37,8 @@ export function findBed(id: string): Bed | undefined {
 }
 
 export interface PlateOptions {
+    /** Language for the notes handed back to the caller. */
+    lang?: Lang;
     bedWidth: number;
     bedHeight: number;
     /** Gap left between neighbouring tags, in mm. */
@@ -115,6 +121,7 @@ export function arrangePlate(tagWidth: number, tagHeight: number, count: number,
     const spacing = Math.max(MIN_SPACING, options.spacing);
     const margin = Math.max(0, options.margin);
     const wanted = Math.max(0, Math.floor(count));
+    const lang: Lang = options.lang ?? DEFAULT_LANG;
     const notes: string[] = [];
 
     const maxColumns = fitCount(options.bedWidth, tagWidth, spacing, margin);
@@ -132,7 +139,15 @@ export function arrangePlate(tagWidth: number, tagHeight: number, count: number,
             height: 0,
             slots: [],
             fits: false,
-            notes: [`Tag ${tagWidth} × ${tagHeight} mm tidak muat pada dandang ${options.bedWidth} × ${options.bedHeight} mm dengan jidar ${margin} mm.`]
+            notes: [
+                translate(lang, 'plate.tooBig', {
+                    tagWidth,
+                    tagHeight,
+                    bedWidth: options.bedWidth,
+                    bedHeight: options.bedHeight,
+                    margin
+                })
+            ]
         };
     }
 
@@ -140,7 +155,7 @@ export function arrangePlate(tagWidth: number, tagHeight: number, count: number,
     if (options.columns && options.columns > 0) {
         columns = Math.min(Math.floor(options.columns), maxColumns);
         if (Math.floor(options.columns) > maxColumns) {
-            notes.push(`Hanya ${maxColumns} lajur muat pada lebar dandang, jadi ${Math.floor(options.columns)} lajur dikurangkan.`);
+            notes.push(translate(lang, 'plate.columnsReduced', { max: maxColumns, asked: Math.floor(options.columns) }));
         }
     } else {
         columns = bestColumns(wanted, maxColumns, maxRows, tagWidth, tagHeight, spacing);
@@ -170,7 +185,7 @@ export function arrangePlate(tagWidth: number, tagHeight: number, count: number,
     }
 
     if (overflow > 0) {
-        notes.push(`${overflow} tag lagi tidak muat pada satu dandang — muat turun akan beri ${Math.ceil(wanted / Math.max(1, placed))} plat, satu fail untuk setiap kali cetak.`);
+        notes.push(translate(lang, 'plate.overflow', { overflow, plates: Math.ceil(wanted / Math.max(1, placed)) }));
     }
 
     return { columns, rows, spacing, capacity, placed, overflow, width, height, slots, fits: true, notes };

@@ -5,6 +5,9 @@ jawatan, dan dapat fail STL siap cetak untuk tag nama guru, penjawat awam atau b
 lengkap dengan poket magnet, teks timbul atau ukir, dan bucu bulat. Mod plat menyusun seluruh
 senarai staf atas dandang pencetak sebagai satu fail.
 
+Dwibahasa: Bahasa Malaysia di akar (`/`), English di bawah `/en/`, dengan pemilih bahasa pada
+setiap halaman.
+
 Dibina dengan Astro, React, Tailwind + daisyUI, dan dihoskan di Netlify.
 
 ---
@@ -73,6 +76,7 @@ netlify dev      # http://localhost:8888
 | Dokumen | Isi |
 | :-- | :-- |
 | [`docs/architecture.md`](docs/architecture.md) | Susunan folder, di mana kod berjalan, cara mesh tertutup dibina, mod plat, data fon |
+| [`docs/i18n.md`](docs/i18n.md) | Cara dwibahasa berfungsi: jadual laluan, kamus, dan cara menambah bahasa ketiga |
 | [`docs/billing.md`](docs/billing.md) | Lesen dan kredit, konfigurasi Stripe, keselamatan, mod demo, menambah gerbang FPX |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Cara bekerja pada kod ini, dan peraturan yang bukan sekadar gaya |
 | [`CHANGELOG.md`](CHANGELOG.md) | Apa yang berubah |

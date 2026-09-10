@@ -1,4 +1,7 @@
 import { randomBytes } from 'node:crypto';
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG, path } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
 import { addCredits, createLicence, readLicence, writeLicence } from './licences';
 import type { Licence, SubscriptionState } from './licences';
 import type { Plan, PlanId } from './plans';
@@ -49,12 +52,14 @@ async function orders() {
  * end to end in demo mode: no money moves, and every licence it issues is flagged as a demo
  * licence wherever it is shown.
  */
-export async function startCheckout(input: { planId: string; email: string; origin: string }): Promise<CheckoutStart> {
+export async function startCheckout(input: { planId: string; email: string; origin: string; lang?: Lang }): Promise<CheckoutStart> {
+    const lang = input.lang ?? DEFAULT_LANG;
+    const t = useTranslations(lang);
     const plan = findPlan(input.planId);
-    if (!plan) throw new CheckoutError('Pelan tidak dikenali.');
+    if (!plan) throw new CheckoutError(t('checkout.planUnknown'));
 
     const email = input.email.trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new CheckoutError('Alamat e-mel tidak sah.');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new CheckoutError(t('checkout.emailInvalid'));
 
     const ref = reference();
     const store = await orders();
@@ -62,35 +67,38 @@ export async function startCheckout(input: { planId: string; email: string; orig
 
     if (!paymentsConfigured()) {
         await store.set(`demo:${ref}`, order);
-        return { url: `${input.origin}/bayaran/berjaya?demo=${ref}`, demo: true };
+        return { url: `${input.origin}${path('paymentDone', lang)}?demo=${ref}`, demo: true };
     }
 
     const session = await createCheckoutSession({
         mode: plan.mode,
         amount: plan.amount,
         currency: plan.currency,
-        productName: `KAKAS - ${plan.label}`,
-        productDescription: planDescription(plan),
-        successUrl: `${input.origin}/bayaran/berjaya?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${input.origin}/bayaran/batal`,
+        productName: t('checkout.productName', { plan: t(plan.labelKey) }),
+        productDescription: planDescription(plan, lang),
+        successUrl: `${input.origin}${path('paymentDone', lang)}?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${input.origin}${path('paymentCancelled', lang)}`,
         email,
         metadata: { plan: plan.id, reference: ref }
     });
 
-    if (!session.url) throw new CheckoutError('Stripe tidak memulangkan pautan pembayaran.');
+    if (!session.url) throw new CheckoutError(t('checkout.noUrl'));
     await store.set(`ref:${ref}`, { ...order, reference: ref });
     return { url: session.url, demo: false };
 }
 
-function planDescription(plan: Plan): string {
-    return plan.mode === 'subscription' ? `${formatPrice(plan.amount)} sebulan - STL nametag tanpa had` : `${formatPrice(plan.amount)} - 1 kredit reka bentuk STL`;
+function planDescription(plan: Plan, lang: Lang): string {
+    const t = useTranslations(lang);
+    const price = formatPrice(plan.amount);
+    return t(plan.mode === 'subscription' ? 'checkout.descSubscription' : 'checkout.descOnce', { price });
 }
 
 /** Turns a completed demo purchase into a licence. Safe to call more than once. */
-export async function claimDemo(ref: string): Promise<Licence> {
+export async function claimDemo(ref: string, lang: Lang = DEFAULT_LANG): Promise<Licence> {
+    const t = useTranslations(lang);
     const store = await orders();
     const order = await store.get<OrderRecord>(`demo:${ref}`);
-    if (!order) throw new CheckoutError('Rujukan pembayaran demo tidak dijumpai atau sudah luput.');
+    if (!order) throw new CheckoutError(t('checkout.demoNotFound'));
 
     if (order.licenceKey) {
         const existing = await readLicence(order.licenceKey);
@@ -98,7 +106,7 @@ export async function claimDemo(ref: string): Promise<Licence> {
     }
 
     const plan = findPlan(order.plan);
-    if (!plan) throw new CheckoutError('Pelan tidak dikenali.');
+    if (!plan) throw new CheckoutError(t('checkout.planUnknown'));
 
     const licence = await issueLicence(plan, order.email, {
         demo: true,
@@ -113,7 +121,8 @@ export async function claimDemo(ref: string): Promise<Licence> {
 }
 
 /** Turns a completed Stripe Checkout Session into a licence. Safe to call more than once. */
-export async function claimSession(sessionId: string): Promise<Licence> {
+export async function claimSession(sessionId: string, lang: Lang = DEFAULT_LANG): Promise<Licence> {
+    const t = useTranslations(lang);
     const store = await orders();
     const already = await store.get<{ licenceKey: string }>(`session:${sessionId}`);
     if (already?.licenceKey) {
@@ -122,9 +131,9 @@ export async function claimSession(sessionId: string): Promise<Licence> {
     }
 
     const session = await retrieveCheckoutSession(sessionId);
-    if (!isPaid(session)) throw new CheckoutError('Pembayaran ini belum selesai. Cuba semula selepas beberapa saat.');
+    if (!isPaid(session)) throw new CheckoutError(t('checkout.notComplete'));
 
-    const licence = await licenceForSession(session);
+    const licence = await licenceForSession(session, lang);
     await store.set(`session:${sessionId}`, { licenceKey: licence.key });
     return licence;
 }
@@ -134,9 +143,10 @@ function isPaid(session: CheckoutSession): boolean {
     return session.payment_status === 'paid';
 }
 
-async function licenceForSession(session: CheckoutSession): Promise<Licence> {
+async function licenceForSession(session: CheckoutSession, lang: Lang = DEFAULT_LANG): Promise<Licence> {
+    const t = useTranslations(lang);
     const plan = findPlan(session.metadata?.plan ?? '');
-    if (!plan) throw new CheckoutError('Sesi pembayaran tiada maklumat pelan.');
+    if (!plan) throw new CheckoutError(t('checkout.sessionNoPlan'));
 
     const email = session.customer_details?.email ?? session.customer_email ?? '';
     let subscription: SubscriptionState | undefined;

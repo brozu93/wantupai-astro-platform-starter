@@ -2,8 +2,6 @@ import type { NametagSpec } from './types';
 
 export interface Preset {
     id: string;
-    label: string;
-    description: string;
     spec: NametagSpec;
 }
 
@@ -30,8 +28,6 @@ function base(overrides: Partial<NametagSpec> & { preset: string }): NametagSpec
 export const PRESETS: Preset[] = [
     {
         id: 'guru',
-        label: 'Guru & Staf Sekolah',
-        description: '76 × 25 mm — nama dan jawatan. Saiz paling lazim untuk tag nama guru.',
         spec: base({
             preset: 'guru',
             lines: [
@@ -42,8 +38,6 @@ export const PRESETS: Preset[] = [
     },
     {
         id: 'penjawat-awam',
-        label: 'Penjawat Awam',
-        description: '80 × 25 mm — nama, jawatan dan jabatan pada tiga baris.',
         spec: base({
             preset: 'penjawat-awam',
             width: 80,
@@ -58,8 +52,6 @@ export const PRESETS: Preset[] = [
     },
     {
         id: 'korporat',
-        label: 'Baju Korporat / Kedai',
-        description: '75 × 22 mm dengan bingkai timbul — sesuai untuk staf kedai dan bisnes.',
         spec: base({
             preset: 'korporat',
             width: 75,
@@ -76,8 +68,6 @@ export const PRESETS: Preset[] = [
     },
     {
         id: 'pelajar',
-        label: 'Pelajar Sekolah',
-        description: '70 × 20 mm — nama dan kelas, ditebuk untuk tali leher.',
         spec: base({
             preset: 'pelajar',
             width: 70,
@@ -94,8 +84,6 @@ export const PRESETS: Preset[] = [
     },
     {
         id: 'tersuai',
-        label: 'Tersuai',
-        description: 'Mula dari plat kosong dan tetapkan sendiri setiap ukuran.',
         spec: base({
             preset: 'tersuai',
             mounting: 'none',

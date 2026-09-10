@@ -1,7 +1,11 @@
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
 import { mountingLayout } from '../../lib/nametag/mounting';
 import type { NametagSpec, TagLayout } from '../../lib/nametag/types';
 
 interface Props {
+    lang?: Lang;
     spec: NametagSpec;
     layout: TagLayout | null;
     view: 'front' | 'back';
@@ -14,7 +18,8 @@ const PAD = 6;
  * than an impression of it. Model coordinates are millimetres with Y pointing up and the origin
  * at the centre of the plate; the outer group flips Y into SVG's downward axis.
  */
-export default function TagPreview({ spec, layout, view }: Props) {
+export default function TagPreview({ spec, layout, view, lang = DEFAULT_LANG }: Props) {
+    const t = useTranslations(lang);
     const width = spec.width + PAD * 2;
     const height = spec.height + PAD * 2;
     const embossed = spec.relief === 'emboss';
@@ -31,7 +36,11 @@ export default function TagPreview({ spec, layout, view }: Props) {
             viewBox={`0 0 ${width} ${height}`}
             className="h-auto w-full"
             role="img"
-            aria-label={`Pratonton ${view === 'front' ? 'hadapan' : 'belakang'} tag ${spec.width} kali ${spec.height} milimeter`}
+            aria-label={t('studio.preview.aria', {
+                side: t(view === 'front' ? 'studio.preview.sideFront' : 'studio.preview.sideBack'),
+                width: spec.width,
+                height: spec.height
+            })}
         >
             <defs>
                 <linearGradient id="plate-face" x1="0" y1="0" x2="0" y2="1">
@@ -144,7 +153,7 @@ export default function TagPreview({ spec, layout, view }: Props) {
 
                         {mounting.magnets.length === 0 && !mounting.pin && !mounting.lanyard && (
                             <text x="0" y="0" transform="scale(1 -1)" textAnchor="middle" fill="rgba(230,233,238,0.45)" fontSize="3">
-                                Belakang rata
+                                {t('studio.preview.flatBack')}
                             </text>
                         )}
                     </>

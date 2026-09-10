@@ -1,0 +1,24 @@
+---
+import NametagStudio from '../nametag/NametagStudio';
+import { langFromUrl, path } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<Layout title={t('studio.title')} description={t('studio.description')} wide>
+    <div class="py-8">
+        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">{t('studio.eyebrow')}</p>
+                <h1 class="mt-1">{t('studio.title')}</h1>
+                <p class="mt-2 max-w-2xl text-graphite-300">{t('studio.lede')}</p>
+            </div>
+            <a href={path('guide', lang)} class="btn btn-outline btn-sm border-white/20">{t('cta.readGuide')}</a>
+        </div>
+
+        <NametagStudio lang={lang} client:load />
+    </div>
+</Layout>

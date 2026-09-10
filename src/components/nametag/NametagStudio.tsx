@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import type { Translate } from '../../i18n/ui';
+import { useTranslations } from '../../i18n/ui';
 import { FONT_OPTIONS, loadFonts } from '../../lib/nametag/fonts';
 import { fontIdsUsed, layoutTag } from '../../lib/nametag/layout';
 import { maxEngraveDepth, mountingLayout } from '../../lib/nametag/mounting';
@@ -26,9 +30,14 @@ interface LicenceView {
     subscription: { status: string; currentPeriodEnd: string } | null;
 }
 
-const LINE_ROLES = ['Nama', 'Jawatan', 'Jabatan / Sekolah', 'Baris tambahan'];
+const LINE_ROLE_KEYS = ['studio.role.name', 'studio.role.title', 'studio.role.dept', 'studio.role.extra'] as const;
 
-export default function NametagStudio() {
+interface Props {
+    lang?: Lang;
+}
+
+export default function NametagStudio({ lang = DEFAULT_LANG }: Props) {
+    const t = useTranslations(lang);
     const [spec, setSpec] = useState<NametagSpec>(() => structuredClone(DEFAULT_PRESET.spec));
     const [fonts, setFonts] = useState<Map<FontId, FontData> | null>(null);
     const [view, setView] = useState<'front' | 'back' | 'plate'>('front');
@@ -65,10 +74,10 @@ export default function NametagStudio() {
             const response = await fetch('/api/billing/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licenceKey: key })
+                body: JSON.stringify({ licenceKey: key, lang })
             });
             const data = (await response.json()) as { ok: boolean; licence?: LicenceView; error?: string };
-            if (!response.ok || !data.licence) throw new Error(data.error ?? 'Kunci lesen tidak sah.');
+            if (!response.ok || !data.licence) throw new Error(data.error ?? t('licence.invalid'));
             setLicence(data.licence);
             setLicenceInput(data.licence.key);
             window.localStorage.setItem(LICENCE_STORAGE_KEY, data.licence.key);
@@ -112,7 +121,7 @@ export default function NametagStudio() {
 
     const bed = useMemo(() => {
         const preset = findBed(bedId);
-        return preset ?? { id: 'custom', label: 'Tersuai', width: customBed.width, height: customBed.height };
+        return preset ?? { id: 'custom', label: t('studio.bed.custom'), width: customBed.width, height: customBed.height };
     }, [bedId, customBed]);
 
     const arrangement = useMemo(
@@ -122,9 +131,10 @@ export default function NametagStudio() {
                 bedHeight: bed.height,
                 spacing,
                 margin: PLATE_MARGIN,
-                columns: plateColumns > 0 ? plateColumns : undefined
+                columns: plateColumns > 0 ? plateColumns : undefined,
+                lang
             }),
-        [spec.width, spec.height, batchRows.length, bed.width, bed.height, spacing, plateColumns]
+        [spec.width, spec.height, batchRows.length, bed.width, bed.height, spacing, plateColumns, lang]
     );
 
     // Laid out once per distinct row: a name repeated to get a spare copy is free after the first.
@@ -202,11 +212,11 @@ export default function NametagStudio() {
         setBusy('sample');
         setStatus(null);
         try {
-            const response = await fetch(`/api/nametag/sample?preset=${encodeURIComponent(spec.preset)}`);
-            if (!response.ok) throw new Error('Gagal menjana fail contoh.');
+            const response = await fetch(`/api/nametag/sample?preset=${encodeURIComponent(spec.preset)}&lang=${lang}`);
+            if (!response.ok) throw new Error(t('studio.error.sample'));
             setNotes(readNotes(response));
             await saveBlob(response, 'kakas-contoh.stl');
-            setStatus('Fail contoh dimuat turun. Cetak dulu untuk uji tetapan pencetak anda.');
+            setStatus(t('studio.status.sample'));
         } catch (error) {
             setStatus((error as Error).message);
         } finally {
@@ -225,7 +235,7 @@ export default function NametagStudio() {
             const response = await fetch('/api/nametag/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licenceKey: licence.key, spec })
+                body: JSON.stringify({ licenceKey: licence.key, spec, lang })
             });
 
             if (!response.ok) {
@@ -234,7 +244,7 @@ export default function NametagStudio() {
                     setPaywall({ open: true, reason: data.error });
                     return;
                 }
-                throw new Error(data.error ?? 'Gagal menjana STL.');
+                throw new Error(data.error ?? t('studio.error.stl'));
             }
 
             const repeat = response.headers.get('X-Kakas-Repeat') === '1';
@@ -242,7 +252,7 @@ export default function NametagStudio() {
             setNotes(readNotes(response));
             await saveBlob(response, 'kakas-nametag.stl');
             setLicence((current) => (current && credits !== null ? { ...current, credits: Number(credits) } : current));
-            setStatus(repeat ? 'Reka bentuk sama seperti sebelum ini — muat turun semula tidak menggunakan kredit.' : 'STL siap dimuat turun.');
+            setStatus(repeat ? t('studio.status.repeat') : t('studio.status.stlDone'));
         } catch (error) {
             setStatus((error as Error).message);
         } finally {
@@ -252,11 +262,11 @@ export default function NametagStudio() {
 
     async function downloadBatch() {
         if (!licence?.unlimited) {
-            setPaywall({ open: true, reason: 'Mod senarai memerlukan langganan bulanan yang aktif.' });
+            setPaywall({ open: true, reason: t('api.batch.subOnly') });
             return;
         }
         if (batchRows.length === 0) {
-            setStatus('Masukkan sekurang-kurangnya satu baris dalam senarai.');
+            setStatus(t('studio.list.needRow'));
             return;
         }
 
@@ -266,11 +276,11 @@ export default function NametagStudio() {
             const response = await fetch('/api/nametag/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licenceKey: licence.key, spec, rows: batchRows })
+                body: JSON.stringify({ licenceKey: licence.key, spec, rows: batchRows, lang })
             });
             if (!response.ok) {
                 const data = (await response.json()) as { error?: string };
-                throw new Error(data.error ?? 'Gagal menjana senarai.');
+                throw new Error(data.error ?? t('studio.error.zip'));
             }
             const count = response.headers.get('X-Kakas-Count');
             setNotes(readNotes(response));
@@ -286,15 +296,15 @@ export default function NametagStudio() {
     /** The whole list as one print job, rather than a folder of files to arrange by hand. */
     async function downloadPlate() {
         if (!licence?.unlimited) {
-            setPaywall({ open: true, reason: 'Mod plat memerlukan langganan bulanan yang aktif.' });
+            setPaywall({ open: true, reason: t('api.plate.subOnly') });
             return;
         }
         if (batchRows.length === 0) {
-            setStatus('Masukkan sekurang-kurangnya satu baris dalam senarai.');
+            setStatus(t('studio.list.needRow'));
             return;
         }
         if (!arrangement.fits) {
-            setStatus(arrangement.notes[0] ?? 'Tag tidak muat pada dandang ini.');
+            setStatus(arrangement.notes[0] ?? t('studio.plate.noFit'));
             return;
         }
 
@@ -308,12 +318,13 @@ export default function NametagStudio() {
                     licenceKey: licence.key,
                     spec,
                     rows: batchRows,
+                    lang,
                     plate: { bedWidth: bed.width, bedHeight: bed.height, spacing, margin: PLATE_MARGIN, columns: plateColumns }
                 })
             });
             if (!response.ok) {
                 const data = (await response.json()) as { error?: string };
-                throw new Error(data.error ?? 'Gagal menjana plat.');
+                throw new Error(data.error ?? t('studio.error.plate'));
             }
 
             const count = response.headers.get('X-Kakas-Count') ?? String(batchRows.length);
@@ -345,7 +356,7 @@ export default function NametagStudio() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
             {/* ---------- Controls ---------- */}
             <div className="space-y-4 lg:sticky lg:top-20">
-                <Section title="Jenis tag" summary="Mula dari saiz yang sudah lazim digunakan" open>
+                <Section title={t('studio.section.type')} summary={t('studio.section.typeSummary')} open>
                     <div className="flex flex-wrap gap-2">
                         {PRESETS.map((preset) => (
                             <button
@@ -355,27 +366,27 @@ export default function NametagStudio() {
                                 aria-pressed={spec.preset === preset.id}
                                 className={`btn btn-xs ${spec.preset === preset.id ? 'btn-primary' : 'btn-outline border-white/15 text-graphite-200'}`}
                             >
-                                {preset.label}
+                                {t(`preset.${preset.id}.label` as 'preset.guru.label')}
                             </button>
                         ))}
                     </div>
-                    <p className="text-xs text-graphite-400">{PRESETS.find((preset) => preset.id === spec.preset)?.description}</p>
+                    <p className="text-xs text-graphite-400">{t(`preset.${spec.preset}.description` as 'preset.guru.description')}</p>
                 </Section>
 
-                <Section title="Teks" summary={`${spec.lines.length} baris`} open>
+                <Section title={t('studio.section.text')} summary={t('studio.section.textSummary', { count: spec.lines.length })} open>
                     {spec.lines.map((line, index) => (
                         <div key={index} className="space-y-3 rounded-lg border border-white/10 bg-graphite-900/40 p-3">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wide text-graphite-400">{LINE_ROLES[index] ?? `Baris ${index + 1}`}</span>
+                                <span className="text-xs font-semibold uppercase tracking-wide text-graphite-400">{t(LINE_ROLE_KEYS[index] ?? 'studio.role.extra')}</span>
                                 {spec.lines.length > 1 && (
                                     <button type="button" className="btn btn-ghost btn-xs text-graphite-400" onClick={() => removeLine(index)}>
-                                        Buang
+                                        {t('studio.line.remove')}
                                     </button>
                                 )}
                             </div>
 
                             <TextField
-                                label="Perkataan"
+                                label={t('studio.field.words')}
                                 value={line.text}
                                 maxLength={LIMITS.maxCharsPerLine}
                                 placeholder={index === 0 ? 'MOHAMAD ZAID BIN ABDULLAH' : 'Guru Reka Bentuk & Teknologi'}
@@ -384,24 +395,24 @@ export default function NametagStudio() {
 
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <SelectField
-                                    label="Fon"
+                                    label={t('studio.field.font')}
                                     value={line.font}
-                                    options={FONT_OPTIONS.map((option) => ({ value: option.id, label: option.label }))}
+                                    options={FONT_OPTIONS.map((option) => ({ value: option.id, label: t(`font.${option.id}` as 'font.sans-bold') }))}
                                     onChange={(font) => updateLine(index, { font })}
                                 />
                                 <SelectField
-                                    label="Huruf"
+                                    label={t('studio.field.case')}
                                     value={line.transform}
                                     options={[
-                                        { value: 'upper', label: 'HURUF BESAR' },
-                                        { value: 'none', label: 'Seperti ditaip' }
+                                        { value: 'upper', label: t('studio.case.upper') },
+                                        { value: 'none', label: t('studio.case.asTyped') }
                                     ]}
                                     onChange={(transform) => updateLine(index, { transform })}
                                 />
                             </div>
 
                             <NumberField
-                                label="Tinggi huruf"
+                                label={t('studio.field.capHeight')}
                                 value={line.size}
                                 min={LIMITS.lineSize.min}
                                 max={Math.min(LIMITS.lineSize.max, spec.height)}
@@ -409,7 +420,7 @@ export default function NametagStudio() {
                                 onChange={(size) => updateLine(index, { size })}
                             />
                             <NumberField
-                                label="Jarak huruf"
+                                label={t('studio.field.tracking')}
                                 value={line.tracking}
                                 min={LIMITS.tracking.min}
                                 max={LIMITS.tracking.max}
@@ -426,11 +437,11 @@ export default function NametagStudio() {
                     )}
                 </Section>
 
-                <Section title="Saiz plat" summary={`${spec.width} × ${spec.height} × ${spec.thickness} mm`}>
-                    <NumberField label="Lebar" value={spec.width} min={LIMITS.width.min} max={LIMITS.width.max} step={0.5} onChange={(width) => update({ width })} />
-                    <NumberField label="Tinggi" value={spec.height} min={LIMITS.height.min} max={LIMITS.height.max} step={0.5} onChange={(height) => update({ height })} />
+                <Section title={t('studio.section.size')} summary={`${spec.width} × ${spec.height} × ${spec.thickness} mm`}>
+                    <NumberField label={t('studio.field.width')} value={spec.width} min={LIMITS.width.min} max={LIMITS.width.max} step={0.5} onChange={(width) => update({ width })} />
+                    <NumberField label={t('studio.field.height')} value={spec.height} min={LIMITS.height.min} max={LIMITS.height.max} step={0.5} onChange={(height) => update({ height })} />
                     <NumberField
-                        label="Ketebalan"
+                        label={t('studio.field.thickness')}
                         value={spec.thickness}
                         min={LIMITS.thickness.min}
                         max={LIMITS.thickness.max}
@@ -438,7 +449,7 @@ export default function NametagStudio() {
                         onChange={(thickness) => update({ thickness })}
                     />
                     <NumberField
-                        label="Bucu bulat"
+                        label={t('studio.field.corner')}
                         value={spec.cornerRadius}
                         min={LIMITS.cornerRadius.min}
                         max={Math.min(LIMITS.cornerRadius.max, Math.min(spec.width, spec.height) / 2)}
@@ -447,18 +458,18 @@ export default function NametagStudio() {
                     />
                 </Section>
 
-                <Section title="Kemasan muka" summary={spec.relief === 'emboss' ? `Timbul ${spec.reliefDepth} mm` : `Ukir ${Math.min(spec.reliefDepth, engraveLimit).toFixed(1)} mm`}>
+                <Section title={t('studio.section.finish')} summary={spec.relief === 'emboss' ? `Timbul ${spec.reliefDepth} mm` : `Ukir ${Math.min(spec.reliefDepth, engraveLimit).toFixed(1)} mm`}>
                     <Segmented
                         label="Gaya"
                         value={spec.relief}
                         options={[
-                            { value: 'emboss', label: 'Timbul' },
-                            { value: 'engrave', label: 'Ukir' }
+                            { value: 'emboss', label: t('studio.relief.emboss') },
+                            { value: 'engrave', label: t('studio.relief.engrave') }
                         ]}
                         onChange={(relief: Relief) => update({ relief })}
                     />
                     <NumberField
-                        label={spec.relief === 'emboss' ? 'Ketinggian teks' : 'Kedalaman ukiran'}
+                        label={t(spec.relief === 'emboss' ? 'studio.field.reliefDepthEmboss' : 'studio.field.reliefDepthEngrave')}
                         value={spec.reliefDepth}
                         min={LIMITS.reliefDepth.min}
                         max={LIMITS.reliefDepth.max}
@@ -468,20 +479,20 @@ export default function NametagStudio() {
                             spec.relief === 'engrave' && spec.reliefDepth > engraveLimit
                                 ? `Dihadkan kepada ${engraveLimit.toFixed(1)} mm oleh poket di belakang.`
                                 : spec.relief === 'emboss'
-                                  ? 'Teks yang lebih tinggi lebih mudah dibaca tetapi lebih lama dicetak.'
+                                  ? t('studio.field.capHeightHint')
                                   : undefined
                         }
                     />
                     <Toggle
-                        label="Bingkai di tepi"
+                        label={t('studio.field.frame')}
                         checked={spec.frame.enabled}
                         onChange={(enabled) => update({ frame: { ...spec.frame, enabled } })}
-                        hint="Garis timbul mengelilingi plat, mengikut gaya kemasan yang sama."
+                        hint={t('studio.field.frameHint')}
                     />
                     {spec.frame.enabled && (
                         <>
                             <NumberField
-                                label="Jarak dari tepi"
+                                label={t('studio.field.frameInset')}
                                 value={spec.frame.inset}
                                 min={LIMITS.frameInset.min}
                                 max={LIMITS.frameInset.max}
@@ -489,7 +500,7 @@ export default function NametagStudio() {
                                 onChange={(inset) => update({ frame: { ...spec.frame, inset } })}
                             />
                             <NumberField
-                                label="Tebal garis"
+                                label={t('studio.field.frameWidth')}
                                 value={spec.frame.width}
                                 min={LIMITS.frameWidth.min}
                                 max={LIMITS.frameWidth.max}
@@ -500,13 +511,13 @@ export default function NametagStudio() {
                     )}
                 </Section>
 
-                <Section title="Cara pakai" summary={mountingLabel(spec.mounting)}>
+                <Section title={t('studio.section.mounting')} summary={mountingLabel(spec.mounting, t)}>
                     <Segmented
-                        label="Pemasangan"
+                        label={t('studio.field.mounting')}
                         value={spec.mounting}
                         options={[
-                            { value: 'magnet', label: 'Magnet' },
-                            { value: 'pin', label: 'Peniti' },
+                            { value: 'magnet', label: t('mount.magnet') },
+                            { value: 'pin', label: t('mount.pin') },
                             { value: 'lanyard', label: 'Tali' },
                             { value: 'none', label: 'Rata' }
                         ]}
@@ -516,7 +527,7 @@ export default function NametagStudio() {
                     {spec.mounting === 'magnet' && (
                         <>
                             <Segmented
-                                label="Bilangan magnet"
+                                label={t('studio.field.magnetCount')}
                                 value={String(spec.magnet.count) as '1' | '2'}
                                 options={[
                                     { value: '1', label: '1 magnet' },
@@ -525,7 +536,7 @@ export default function NametagStudio() {
                                 onChange={(value) => update({ magnet: { ...spec.magnet, count: value === '1' ? 1 : 2 } })}
                             />
                             <NumberField
-                                label="Diameter magnet"
+                                label={t('studio.field.magnetDiameter')}
                                 value={spec.magnet.diameter}
                                 min={LIMITS.magnetDiameter.min}
                                 max={LIMITS.magnetDiameter.max}
@@ -533,33 +544,33 @@ export default function NametagStudio() {
                                 onChange={(diameter) => update({ magnet: { ...spec.magnet, diameter } })}
                             />
                             <NumberField
-                                label="Tebal magnet"
+                                label={t('studio.field.magnetThickness')}
                                 value={spec.magnet.thickness}
                                 min={LIMITS.magnetThickness.min}
                                 max={LIMITS.magnetThickness.max}
                                 step={0.5}
                                 onChange={(thickness) => update({ magnet: { ...spec.magnet, thickness } })}
-                                hint="Poket dipotong sedikit lebih besar supaya magnet boleh ditekan masuk."
+                                hint={t('studio.magnet.hint')}
                             />
                         </>
                     )}
-                    {spec.mounting === 'pin' && <p className="text-xs text-graphite-400">Lekuk rata dipotong di belakang untuk bar peniti standard yang dilekat dengan gam.</p>}
-                    {spec.mounting === 'lanyard' && <p className="text-xs text-graphite-400">Lubang memanjang di bahagian atas; teks dialih ke bawah supaya tidak bertindih.</p>}
+                    {spec.mounting === 'pin' && <p className="text-xs text-graphite-400">{t('studio.pin.hint')}</p>}
+                    {spec.mounting === 'lanyard' && <p className="text-xs text-graphite-400">{t('studio.lanyard.hint')}</p>}
                 </Section>
 
-                <Section title="Susun atur" summary={`${spec.align === 'center' ? 'Tengah' : 'Kiri'} · jidar ${spec.marginX} mm`}>
+                <Section title={t('studio.section.layout')} summary={`${spec.align === 'center' ? 'Tengah' : 'Kiri'} · jidar ${spec.marginX} mm`}>
                     <Segmented
-                        label="Penjajaran"
+                        label={t('studio.field.align')}
                         value={spec.align}
                         options={[
-                            { value: 'center', label: 'Tengah' },
-                            { value: 'left', label: 'Kiri' }
+                            { value: 'center', label: t('studio.align.center') },
+                            { value: 'left', label: t('studio.align.left') }
                         ]}
                         onChange={(align) => update({ align })}
                     />
-                    <NumberField label="Jidar kiri & kanan" value={spec.marginX} min={LIMITS.marginX.min} max={LIMITS.marginX.max} step={0.5} onChange={(marginX) => update({ marginX })} />
-                    <NumberField label="Jidar atas & bawah" value={spec.marginY} min={LIMITS.marginY.min} max={LIMITS.marginY.max} step={0.5} onChange={(marginY) => update({ marginY })} />
-                    <NumberField label="Jarak antara baris" value={spec.lineGap} min={LIMITS.lineGap.min} max={LIMITS.lineGap.max} step={0.1} onChange={(lineGap) => update({ lineGap })} />
+                    <NumberField label={t('studio.field.marginX')} value={spec.marginX} min={LIMITS.marginX.min} max={LIMITS.marginX.max} step={0.5} onChange={(marginX) => update({ marginX })} />
+                    <NumberField label={t('studio.field.marginY')} value={spec.marginY} min={LIMITS.marginY.min} max={LIMITS.marginY.max} step={0.5} onChange={(marginY) => update({ marginY })} />
+                    <NumberField label={t('studio.field.lineGap')} value={spec.lineGap} min={LIMITS.lineGap.min} max={LIMITS.lineGap.max} step={0.1} onChange={(lineGap) => update({ lineGap })} />
                 </Section>
             </div>
 
@@ -569,13 +580,13 @@ export default function NametagStudio() {
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                         <div className="join">
                             <button type="button" className={`btn btn-sm join-item ${view === 'front' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('front')}>
-                                Hadapan
+                                {t('studio.view.front')}
                             </button>
                             <button type="button" className={`btn btn-sm join-item ${view === 'back' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('back')}>
-                                Belakang
+                                {t('studio.view.back')}
                             </button>
                             <button type="button" className={`btn btn-sm join-item ${view === 'plate' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setView('plate')}>
-                                Plat
+                                {t('studio.view.plate')}
                                 {batchRows.length > 0 && <span className="ml-1.5 text-[10px] opacity-70">{batchRows.length}</span>}
                             </button>
                         </div>
@@ -595,24 +606,31 @@ export default function NametagStudio() {
 
                     <div className="bg-graphite-950/60 p-5 sm:p-8">
                         {!fonts ? (
-                            <div className="flex h-40 items-center justify-center text-sm text-graphite-400">Memuatkan bentuk huruf…</div>
+                            <div className="flex h-40 items-center justify-center text-sm text-graphite-400">{t('studio.preview.loading')}</div>
                         ) : view === 'plate' ? (
-                            <PlatePreview spec={spec} arrangement={arrangement} layouts={plateLayouts} bedWidth={bed.width} bedHeight={bed.height} showBed />
+                            <PlatePreview lang={lang} spec={spec} arrangement={arrangement} layouts={plateLayouts} bedWidth={bed.width} bedHeight={bed.height} showBed />
                         ) : (
-                            <TagPreview spec={spec} layout={layout} view={view} />
+                            <TagPreview lang={lang} spec={spec} layout={layout} view={view} />
                         )}
                     </div>
 
                     {view === 'plate' && (
                         <div className="space-y-1 border-t border-white/10 px-4 py-3 text-xs">
                             <p className="tabular text-graphite-300">
-                                {arrangement.placed} unit · {arrangement.columns} lajur × {arrangement.rows} baris · jarak {arrangement.spacing} mm ·{' '}
-                                {bed.label} · {bed.width} × {bed.height} mm
+                                {t('studio.plate.units', {
+                                    count: arrangement.placed,
+                                    columns: arrangement.columns,
+                                    rows: arrangement.rows,
+                                    spacing: arrangement.spacing,
+                                    bed: bed.label,
+                                    bedWidth: bed.width,
+                                    bedHeight: bed.height
+                                })}
                             </p>
                             <p className="text-graphite-400">
                                 {arrangement.fits
-                                    ? `Dandang ini muat ${arrangement.capacity} tag saiz ini sekali cetak.`
-                                    : 'Tag lebih besar daripada dandang.'}
+                                    ? t('studio.plate.capacity', { capacity: arrangement.capacity })
+                                    : t('studio.plate.tooBigShort')}
                             </p>
                             {arrangement.notes.map((note) => (
                                 <p key={note} className="text-warning">
@@ -634,10 +652,10 @@ export default function NametagStudio() {
                 <div className="panel space-y-4 p-4">
                     <div className="flex flex-wrap gap-3">
                         <button type="button" className="btn btn-primary" onClick={downloadStl} disabled={busy !== null}>
-                            {busy === 'stl' ? 'Menjana…' : licence ? 'Muat turun STL' : 'Buka kunci & muat turun STL'}
+                            {busy === 'stl' ? t('studio.busy.generating') : licence ? t('studio.download.stl') : t('studio.download.unlock')}
                         </button>
                         <button type="button" className="btn btn-outline border-white/20" onClick={downloadSample} disabled={busy !== null}>
-                            {busy === 'sample' ? 'Menjana…' : 'STL contoh percuma'}
+                            {busy === 'sample' ? t('studio.busy.generating') : t('studio.download.sample')}
                         </button>
                     </div>
 
@@ -658,15 +676,15 @@ export default function NametagStudio() {
                 </div>
 
                 <div className="panel space-y-3 p-4">
-                    <h2 className="text-sm font-semibold">Lesen</h2>
+                    <h2 className="text-sm font-semibold">{t('licence.title')}</h2>
                     {licence ? (
                         <div className="space-y-2 text-sm">
                             <p className="tabular break-all text-graphite-200">
-                                <span className="text-graphite-400">Kunci:</span> {licence.key}
+                                <span className="text-graphite-400">{t('licence.keyLabel')}</span> {licence.key}
                             </p>
                             <p className="text-graphite-300">
                                 {licence.unlimited
-                                    ? 'Langganan bulanan aktif — STL tanpa had.'
+                                    ? t('licence.unlimited')
                                     : `${licence.credits} kredit reka bentuk berbaki. Reka bentuk yang sudah dibeli boleh dimuat turun semula percuma.`}
                             </p>
                             {licence.demo && (
@@ -675,7 +693,7 @@ export default function NametagStudio() {
                                 </p>
                             )}
                             <button type="button" className="btn btn-ghost btn-xs text-graphite-400" onClick={signOut}>
-                                Log keluar lesen
+                                {t('licence.signOut')}
                             </button>
                         </div>
                     ) : (
@@ -684,19 +702,19 @@ export default function NametagStudio() {
                                 <input
                                     type="text"
                                     className="input input-bordered input-sm tabular min-w-0 grow bg-graphite-900/70"
-                                    placeholder="KKS-XXXX-XXXX-XXXX-XXXX-XXXX"
+                                    placeholder={t('licence.placeholder')}
                                     value={licenceInput}
                                     onChange={(event) => setLicenceInput(event.target.value)}
                                 />
                                 <button type="button" className="btn btn-sm" onClick={() => verifyLicence(licenceInput)} disabled={busy !== null}>
-                                    {busy === 'licence' ? 'Menyemak…' : 'Guna kunci'}
+                                    {busy === 'licence' ? t('licence.checking') : t('licence.use')}
                                 </button>
                             </div>
                             {licenceError && <p className="text-xs text-error">{licenceError}</p>}
                             <p className="text-xs text-graphite-400">
-                                Belum ada lesen?{' '}
+                                {t('licence.noneBefore')}{' '}
                                 <a href="/harga" className="underline underline-offset-4">
-                                    Lihat harga
+                                    {t('licence.noneLink')}
                                 </a>
                                 .
                             </p>
@@ -706,9 +724,9 @@ export default function NametagStudio() {
 
                 <details className="panel" open={batchRows.length > 0}>
                     <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">
-                        Senarai nama — seluruh staf sekali jalan
-                        {batchRows.length > 0 && <span className="ml-2 text-xs font-normal text-graphite-400">{batchRows.length} nama</span>}
-                        <span className="ml-2 rounded bg-brass-400/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-brass-300">Langganan</span>
+                        {t('studio.list.title')}
+                        {batchRows.length > 0 && <span className="ml-2 text-xs font-normal text-graphite-400">{t('studio.list.count', { count: batchRows.length })}</span>}
+                        <span className="ml-2 rounded bg-brass-400/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-brass-300">{t('studio.list.badge')}</span>
                     </summary>
                     <div className="space-y-4 border-t border-white/10 px-4 py-4">
                         <div className="space-y-2">
@@ -721,24 +739,24 @@ export default function NametagStudio() {
                                 placeholder={'NURUL AIN BINTI HASSAN | Guru Bahasa Melayu\nAHMAD FAIZ BIN OTHMAN | Guru Matematik'}
                                 value={batchText}
                                 onChange={(event) => setBatchText(event.target.value)}
-                                aria-label="Senarai nama, satu baris setiap tag"
+                                aria-label={t('studio.list.aria')}
                             />
-                            <p className="text-xs text-graphite-400">Maksimum {LIMITS.maxBatchRows} tag setiap muat turun.</p>
+                            <p className="text-xs text-graphite-400">{t('studio.list.max', { max: LIMITS.maxBatchRows })}</p>
                         </div>
 
                         <div className="space-y-3 border-t border-white/10 pt-4">
                             <SelectField
-                                label="Dandang pencetak"
+                                label={t('studio.bed.label')}
                                 value={bedId}
-                                options={[...BEDS.map((item) => ({ value: item.id, label: `${item.label} — ${item.width} × ${item.height} mm` })), { value: 'custom', label: 'Tersuai' }]}
+                                options={[...BEDS.map((item) => ({ value: item.id, label: `${item.label} — ${item.width} × ${item.height} mm` })), { value: 'custom', label: t('studio.bed.custom') }]}
                                 onChange={setBedId}
-                                hint="Menentukan berapa banyak tag muat pada satu kali cetak."
+                                hint={t('studio.bed.hint')}
                             />
 
                             {bedId === 'custom' && (
                                 <div className="grid grid-cols-2 gap-3">
                                     <NumberField
-                                        label="Lebar dandang"
+                                        label={t('studio.bed.width')}
                                         value={customBed.width}
                                         min={PLATE_LIMITS.bed.min}
                                         max={PLATE_LIMITS.bed.max}
@@ -746,7 +764,7 @@ export default function NametagStudio() {
                                         onChange={(width) => setCustomBed((current) => ({ ...current, width }))}
                                     />
                                     <NumberField
-                                        label="Dalam dandang"
+                                        label={t('studio.bed.depth')}
                                         value={customBed.height}
                                         min={PLATE_LIMITS.bed.min}
                                         max={PLATE_LIMITS.bed.max}
@@ -757,42 +775,48 @@ export default function NametagStudio() {
                             )}
 
                             <NumberField
-                                label="Jarak antara tag"
+                                label={t('studio.spacing.label')}
                                 value={spacing}
                                 min={PLATE_LIMITS.spacing.min}
                                 max={PLATE_LIMITS.spacing.max}
                                 step={0.5}
                                 onChange={setSpacing}
-                                hint="Rapat memuatkan lebih banyak tag; longgar lebih senang dikeluarkan dari dandang."
+                                hint={t('studio.spacing.hint')}
                             />
 
                             <NumberField
-                                label="Bilangan lajur"
+                                label={t('studio.columns.label')}
                                 value={plateColumns}
                                 min={0}
                                 max={PLATE_LIMITS.columns.max}
                                 step={1}
-                                unit={plateColumns === 0 ? 'auto' : 'lajur'}
+                                unit={t(plateColumns === 0 ? 'studio.columns.auto' : 'studio.columns.unit')}
                                 onChange={(columns) => setPlateColumns(Math.round(columns))}
-                                hint="Biar sifar untuk susunan paling padat."
+                                hint={t('studio.columns.hint')}
                             />
 
                             <p className="tabular rounded-lg bg-graphite-900/70 px-3 py-2 text-xs text-graphite-300">
                                 {arrangement.fits
-                                    ? `${arrangement.columns} lajur × ${arrangement.rows} baris · ${arrangement.width.toFixed(1)} × ${arrangement.height.toFixed(1)} mm · ${arrangement.capacity} tag setiap dandang`
-                                    : 'Tag lebih besar daripada dandang ini.'}{' '}
+                                    ? t('studio.plate.summary', {
+                                          columns: arrangement.columns,
+                                          rows: arrangement.rows,
+                                          width: arrangement.width.toFixed(1),
+                                          height: arrangement.height.toFixed(1),
+                                          capacity: arrangement.capacity
+                                      })
+                                    : t('studio.plate.tooBig')}{' '}
                                 <button type="button" className="underline underline-offset-4" onClick={() => setView('plate')}>
-                                    Lihat plat
+                                    {t('studio.plate.viewLink')}
                                 </button>
                             </p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
                             <button type="button" className="btn btn-primary btn-sm" onClick={downloadPlate} disabled={busy !== null}>
-                                {busy === 'plate' ? 'Menyusun…' : 'Muat turun satu plat'}
+                                {busy === 'plate' ? t('studio.list.arranging') : t('studio.list.downloadPlate')}
                             </button>
                             <button type="button" className="btn btn-outline btn-sm border-white/20" onClick={downloadBatch} disabled={busy !== null}>
-                                {busy === 'batch' ? 'Menjana…' : 'STL berasingan (ZIP)'}
+                                {busy === 'batch' ? t('studio.busy.generating') : t('studio.list.downloadZip')}
                             </button>
                         </div>
                         <p className="text-xs text-graphite-400">
@@ -814,17 +838,8 @@ function mergeFonts(previous: Map<FontId, FontData> | null, loaded: Map<FontId, 
     return merged;
 }
 
-function mountingLabel(mounting: Mounting): string {
-    switch (mounting) {
-        case 'magnet':
-            return 'Poket magnet di belakang';
-        case 'pin':
-            return 'Lekuk bar peniti';
-        case 'lanyard':
-            return 'Lubang tali leher';
-        default:
-            return 'Belakang rata';
-    }
+function mountingLabel(mounting: Mounting, t: Translate): string {
+    return t(`mount.${mounting}.long` as 'mount.none.long');
 }
 
 function readNotes(response: Response): string[] {

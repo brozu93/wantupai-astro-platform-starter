@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
 
 const LICENCE_STORAGE_KEY = 'kakas.licence';
 
@@ -12,11 +15,16 @@ interface LicenceView {
 
 const PLAN_LABELS: Record<string, string> = { sekali: 'Bayar Sekali', bulanan: 'Langganan Bulanan' };
 
+interface Props {
+    lang?: Lang;
+}
+
 /**
  * Exchanges the finished payment for a licence key as soon as the customer lands here, so the
  * key is on screen before the webhook has even arrived.
  */
-export default function ClaimLicence() {
+export default function ClaimLicence({ lang = DEFAULT_LANG }: Props) {
+    const t = useTranslations(lang);
     const [licence, setLicence] = useState<LicenceView | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
@@ -26,7 +34,7 @@ export default function ClaimLicence() {
         const sessionId = params.get('session_id');
         const demo = params.get('demo');
         if (!sessionId && !demo) {
-            setError('Pautan ini tiada rujukan pembayaran. Buka semula pautan daripada e-mel resit anda.');
+            setError(t('claim.noReference'));
             return;
         }
 
@@ -48,7 +56,7 @@ export default function ClaimLicence() {
                         setTimeout(() => void claim(attempt + 1), 1500 * (attempt + 1));
                         return;
                     }
-                    throw new Error(data.error ?? 'Gagal mengesahkan pembayaran.');
+                    throw new Error(data.error ?? t('claim.failed'));
                 }
 
                 setLicence(data.licence);
@@ -81,7 +89,7 @@ export default function ClaimLicence() {
     if (!licence) {
         return (
             <div className="panel p-6">
-                <p className="text-graphite-300">Mengesahkan pembayaran…</p>
+                <p className="text-graphite-300">{t('claim.confirming')}</p>
             </div>
         );
     }
@@ -89,7 +97,7 @@ export default function ClaimLicence() {
     return (
         <div className="panel space-y-5 p-6">
             <div>
-                <p className="field-label">Kunci lesen anda</p>
+                <p className="field-label">{t('lookup.yourKey')}</p>
                 <div className="flex flex-wrap items-center gap-3">
                     <code className="tabular break-all rounded-lg bg-graphite-900 px-3 py-2 text-lg font-semibold text-brass-300">{licence.key}</code>
                     <button
@@ -101,7 +109,7 @@ export default function ClaimLicence() {
                             setTimeout(() => setCopied(false), 2000);
                         }}
                     >
-                        {copied ? 'Disalin' : 'Salin'}
+                        {copied ? t('lookup.copied') : t('lookup.copy')}
                     </button>
                 </div>
                 <p className="mt-2 text-sm text-graphite-300">
@@ -110,8 +118,8 @@ export default function ClaimLicence() {
             </div>
 
             <p className="text-sm">
-                <span className="text-graphite-400">Pelan:</span> {PLAN_LABELS[licence.plan] ?? licence.plan} —{' '}
-                {licence.unlimited ? 'STL tanpa had' : `${licence.credits} kredit reka bentuk`}
+                <span className="text-graphite-400">{t('lookup.plan')}</span> {PLAN_LABELS[licence.plan] ?? licence.plan} —{' '}
+                {licence.unlimited ? t('lookup.unlimitedStl') : `${licence.credits} kredit reka bentuk`}
             </p>
 
             {licence.demo && (

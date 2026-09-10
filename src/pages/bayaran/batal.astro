@@ -1,17 +1,5 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+import PaymentCancelled from '../../components/pages/PaymentCancelled.astro';
 ---
 
-<Layout title="Pembayaran dibatalkan" description="Pembayaran KAKAS dibatalkan. Tiada caj dikenakan.">
-    <section class="py-14">
-        <p class="text-xs font-semibold uppercase tracking-widest text-graphite-400">Dibatalkan</p>
-        <h1 class="mt-2">Tiada apa-apa dicaj.</h1>
-        <p class="mt-4 max-w-2xl text-graphite-300">
-            Pembayaran dibatalkan sebelum selesai, jadi tiada wang ditolak. Reka bentuk anda masih ada di dalam studio — teruskan bila-bila masa anda bersedia.
-        </p>
-        <div class="mt-8 flex flex-wrap gap-3">
-            <a href="/apps/nametag" class="btn btn-primary">Kembali ke Studio</a>
-            <a href="/harga" class="btn btn-outline border-white/20">Lihat harga semula</a>
-        </div>
-    </section>
-</Layout>
+<PaymentCancelled />

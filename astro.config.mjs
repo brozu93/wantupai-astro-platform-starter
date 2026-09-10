@@ -12,5 +12,12 @@ export default defineConfig({
         })
     ],
     output: 'hybrid',
-    adapter: netlify()
+    adapter: netlify(),
+    // Malay is served from the root and English from /en/, which needs no domain and gives each
+    // language a URL that can be shared. src/i18n/index.ts holds the ms<->en route table.
+    i18n: {
+        defaultLocale: 'ms',
+        locales: ['ms', 'en'],
+        routing: { prefixDefaultLocale: false }
+    }
 });

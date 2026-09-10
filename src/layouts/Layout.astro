@@ -8,6 +8,8 @@ import interFont800 from '@fontsource/inter/files/inter-latin-800-normal.woff2?u
 
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
+import { DEFAULT_LANG, HTML_LANG, LANGS, OG_LOCALE, ROUTES, langFromUrl, routeKeyOf } from '../i18n';
+import { useTranslations } from '../i18n/ui';
 
 interface Props {
     title: string;
@@ -16,15 +18,23 @@ interface Props {
     wide?: boolean;
 }
 
-const { title, description = 'KAKAS membina perkakas digital untuk kerja tangan. Penjana STL nametag kerajaan, sekolah dan korporat untuk pencetak 3D.', wide = false } =
-    Astro.props;
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
 
-const fullTitle = title === 'KAKAS' ? 'KAKAS — Perkakas digital untuk pencetak 3D' : `${title} — KAKAS`;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const { title, description = t('meta.description'), wide = false } = Astro.props;
+
+const fullTitle = title === 'KAKAS' ? t('meta.homeTitle') : `${title} — KAKAS`;
+const origin = Astro.site ?? new URL(Astro.url.origin);
+const canonical = new URL(Astro.url.pathname, origin).href;
+
+// Each page states where its other language lives, so a search engine indexes the pair rather
+// than treating the English tree as a duplicate of the Malay one.
+const routeKey = routeKeyOf(Astro.url.pathname);
+const alternates = routeKey ? LANGS.map((code) => ({ code, href: new URL(ROUTES[routeKey][code], origin).href })) : [];
 ---
 
 <!doctype html>
-<html lang="ms" data-theme="kakas">
+<html lang={HTML_LANG[lang]} data-theme="kakas">
     <head>
         <meta charset="UTF-8" />
         <title>{fullTitle}</title>
@@ -32,6 +42,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).hr
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="generator" content={Astro.generator} />
         <link rel="canonical" href={canonical} />
+        {alternates.map((alt) => <link rel="alternate" hreflang={alt.code} href={alt.href} />)}
+        {alternates.length > 0 && <link rel="alternate" hreflang="x-default" href={new URL(ROUTES[routeKey!][DEFAULT_LANG], origin).href} />}
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="preload" as="font" type="font/woff2" href={interFont400} crossorigin />
         <link rel="preload" as="font" type="font/woff2" href={interFont800} crossorigin />
@@ -39,7 +51,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).hr
         <meta property="og:site_name" content="KAKAS" />
         <meta property="og:title" content={fullTitle} />
         <meta property="og:description" content={description} />
-        <meta property="og:locale" content="ms_MY" />
+        <meta property="og:locale" content={OG_LOCALE[lang]} />
         <meta name="twitter:card" content="summary" />
         <meta name="theme-color" content="#0F1318" />
     </head>

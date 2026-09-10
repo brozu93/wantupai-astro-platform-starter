@@ -1,0 +1,50 @@
+---
+import { langFromUrl, path } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const apps = [
+    { name: t('apps.nametag.name'), summary: t('apps.nametag.summary'), href: path('nametag', lang), available: true },
+    { name: t('apps.potLabel.name'), summary: t('apps.potLabel.summary'), href: null, available: false },
+    { name: t('apps.qr.name'), summary: t('apps.qr.summary'), href: null, available: false }
+];
+---
+
+<Layout title={t('apps.title')} description={t('apps.description')}>
+    <section class="py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">{t('apps.eyebrow')}</p>
+        <h1 class="mt-2">{t('apps.title')}</h1>
+        <p class="mt-4 max-w-2xl text-graphite-300">{t('apps.lede')}</p>
+
+        <ul class="mt-10 grid gap-5 md:grid-cols-2">
+            {
+                apps.map((app) => (
+                    <li class="panel flex flex-col p-6">
+                        <div class="flex items-start justify-between gap-3">
+                            <h2 class="text-xl">{app.name}</h2>
+                            <span
+                                class:list={[
+                                    'shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide',
+                                    app.available ? 'bg-success/15 text-success' : 'bg-white/10 text-graphite-300'
+                                ]}
+                            >
+                                {app.available ? t('apps.statusReady') : t('apps.statusBuilding')}
+                            </span>
+                        </div>
+                        <p class="mt-3 grow text-sm text-graphite-300">{app.summary}</p>
+                        {app.href ? (
+                            <a href={app.href} class="btn btn-primary btn-sm mt-6 self-start">
+                                {t('apps.open')}
+                            </a>
+                        ) : (
+                            <p class="mt-6 text-xs text-graphite-500">{t('apps.soon')}</p>
+                        )}
+                    </li>
+                ))
+            }
+        </ul>
+    </section>
+</Layout>

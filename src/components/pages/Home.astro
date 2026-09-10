@@ -1,0 +1,121 @@
+---
+import { langFromUrl, path } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+import { PLANS, formatPrice } from '../../lib/billing/plans';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const steps = [1, 2, 3] as const;
+const features = [1, 2, 3, 4, 5, 6] as const;
+---
+
+<Layout title="KAKAS">
+    <section class="grid items-center gap-10 py-14 md:grid-cols-[1.15fr_1fr] md:py-20">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">{t('home.eyebrow')}</p>
+            <h1 class="mt-3 text-balance">{t('home.title')}</h1>
+            <p class="mt-5 max-w-xl text-lg text-graphite-300">{t('home.lede')}</p>
+            <div class="mt-8 flex flex-wrap gap-3">
+                <a href={path('nametag', lang)} class="btn btn-primary btn-lg">{t('home.ctaDesign')}</a>
+                <a href={path('pricing', lang)} class="btn btn-outline btn-lg border-white/20">{t('cta.seePricing')}</a>
+            </div>
+            <p class="mt-4 text-sm text-graphite-400">{t('home.freeNote')}</p>
+        </div>
+
+        <div class="panel p-6">
+            {/* A drawn sample rather than a photo: this is exactly the geometry the studio produces. */}
+            <svg viewBox="0 0 100 54" class="h-auto w-full" role="img" aria-label={t('home.sampleAria')}>
+                <text x="6" y="4.6" fill="#69768A" font-size="2.8">76 × 25 mm</text>
+                <rect x="6" y="7" width="88" height="29" rx="3" fill="#252D38" stroke="rgba(255,255,255,0.18)" stroke-width="0.4"></rect>
+                <text x="50" y="21" text-anchor="middle" fill="#F4F6F9" font-size="6.4" font-weight="800" letter-spacing="0.3">MOHAMAD ZAID</text>
+                <text x="50" y="29.5" text-anchor="middle" fill="#C3CAD4" font-size="4">{t('home.sampleRole')}</text>
+                <circle cx="34" cy="45" r="4.15" fill="#12161C" stroke="rgba(245,165,36,0.6)" stroke-width="0.4"></circle>
+                <circle cx="66" cy="45" r="4.15" fill="#12161C" stroke="rgba(245,165,36,0.6)" stroke-width="0.4"></circle>
+                <text x="50" y="46" text-anchor="middle" fill="#69768A" font-size="2.8">{t('home.sampleBack')}</text>
+                <text x="50" y="53" text-anchor="middle" fill="#69768A" font-size="2.8">{t('home.sampleMagnets')}</text>
+            </svg>
+            <p class="mt-4 text-sm text-graphite-300">
+                {t('home.sampleCaptionBefore')}<strong class="font-semibold text-base-content">{t('home.sampleCaptionStrong')}</strong>{
+                    t('home.sampleCaptionAfter')
+                }
+            </p>
+        </div>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <h2>{t('home.steps.title')}</h2>
+        <ol class="mt-8 grid gap-6 md:grid-cols-3">
+            {
+                steps.map((n, index) => (
+                    <li class="panel p-6">
+                        <span class="tabular text-3xl font-extrabold text-brass-400">{String(index + 1).padStart(2, '0')}</span>
+                        <h3 class="mt-3">{t(`home.step${n}.title` as 'home.step1.title')}</h3>
+                        <p class="mt-2 text-sm text-graphite-300">{t(`home.step${n}.body` as 'home.step1.body')}</p>
+                    </li>
+                ))
+            }
+        </ol>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <h2>{t('home.features.title')}</h2>
+        <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {
+                features.map((n) => (
+                    <div class="panel p-5">
+                        <h3 class="text-base">{t(`home.feature${n}.title` as 'home.feature1.title')}</h3>
+                        <p class="mt-2 text-sm text-graphite-300">{t(`home.feature${n}.body` as 'home.feature1.body')}</p>
+                    </div>
+                ))
+            }
+        </div>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+            <h2>{t('home.pricing.title')}</h2>
+            <a href={path('pricing', lang)} class="text-sm text-brass-300 underline underline-offset-4">{t('home.pricing.details')}</a>
+        </div>
+        <div class="mt-8 grid gap-5 sm:grid-cols-2">
+            {
+                PLANS.map((plan) => (
+                    <div class="panel p-6">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <h3>{t(plan.labelKey)}</h3>
+                            <p class="tabular text-2xl font-extrabold text-brass-300">
+                                {formatPrice(plan.amount)}
+                                {plan.mode === 'subscription' && <span class="text-sm font-normal text-graphite-400">{t('home.pricing.perMonth')}</span>}
+                            </p>
+                        </div>
+                        <p class="mt-1 text-sm text-graphite-300">{t(plan.taglineKey)}</p>
+                        <ul class="mt-4 space-y-1.5 text-sm text-graphite-300">
+                            {plan.featureKeys.map((key) => (
+                                <li class="flex gap-2">
+                                    <span aria-hidden="true" class="text-brass-400">
+                                        ✓
+                                    </span>
+                                    {t(key)}
+                                </li>
+                            ))}
+                        </ul>
+                        <a href={path('pricing', lang)} class="btn btn-primary btn-sm mt-6">
+                            {t('home.pricing.choose', { plan: t(plan.labelKey) })}
+                        </a>
+                    </div>
+                ))
+            }
+        </div>
+    </section>
+
+    <section class="border-t border-white/10 py-14">
+        <div class="panel flex flex-wrap items-center justify-between gap-6 p-8">
+            <div>
+                <h2>{t('home.closing.title')}</h2>
+                <p class="mt-2 max-w-xl text-graphite-300">{t('home.closing.body')}</p>
+            </div>
+            <a href={path('nametag', lang)} class="btn btn-primary btn-lg">{t('cta.openStudio')}</a>
+        </div>
+    </section>
+</Layout>

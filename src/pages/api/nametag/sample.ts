@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { toLang } from '../../../i18n';
+import { useTranslations } from '../../../i18n/ui';
 import { attachment, fail, toBody } from '../../../lib/api/respond';
 import { generateTag } from '../../../lib/nametag/generate';
 import { DEFAULT_PRESET, findPreset } from '../../../lib/nametag/presets';
@@ -19,11 +21,13 @@ const SAMPLE_LINES: NametagSpec['lines'] = [
 ];
 
 export const GET: APIRoute = async ({ url }) => {
+    const lang = toLang(url.searchParams.get('lang'));
+    const t = useTranslations(lang);
     const preset = findPreset(url.searchParams.get('preset') ?? '') ?? DEFAULT_PRESET;
     const spec: NametagSpec = { ...preset.spec, lines: SAMPLE_LINES };
 
     try {
-        const tag = await generateTag(spec);
+        const tag = await generateTag(spec, lang);
         return new Response(toBody(tag.stl), {
             headers: {
                 // Same bytes for every visitor, so it is served from the edge rather than rebuilt.
@@ -32,6 +36,6 @@ export const GET: APIRoute = async ({ url }) => {
             }
         });
     } catch (error) {
-        return fail(`Gagal menjana fail contoh: ${(error as Error).message}`, 500);
+        return fail(t('api.sample.failed', { message: (error as Error).message }), 500);
     }
 };

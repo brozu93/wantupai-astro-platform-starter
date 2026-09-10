@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { DEFAULT_LANG, toLang } from '../../../i18n';
+import { translate, useTranslations } from '../../../i18n/ui';
 import { attachment, fail, json, readJson, toBody } from '../../../lib/api/respond';
 import { isSubscriptionActive, publicLicence, readLicence, recordBatch } from '../../../lib/billing/licences';
 import { generatePlate } from '../../../lib/nametag/generate';
@@ -18,35 +20,38 @@ export const prerender = false;
  * back as a ZIP of plates. Like list mode, it is a subscription feature.
  */
 export const POST: APIRoute = async ({ request }) => {
-    let body: { licenceKey?: string; spec?: unknown; rows?: unknown; plate?: unknown };
+    let body: { licenceKey?: string; spec?: unknown; rows?: unknown; plate?: unknown; lang?: string };
     try {
         body = (await readJson(request, 512 * 1024)) as typeof body;
     } catch (error) {
         return fail((error as Error).message);
     }
 
+    const lang = toLang(body.lang);
+    const t = useTranslations(lang);
+
     const licence = await readLicence(String(body.licenceKey ?? ''));
-    if (!licence) return fail('Kunci lesen tidak sah.', 401);
+    if (!licence) return fail(t('api.licence.invalid'), 401);
     if (!isSubscriptionActive(licence)) {
-        return fail('Mod plat hanya untuk langganan bulanan yang aktif.', 402, { licence: publicLicence(licence) });
+        return fail(t('api.plate.subOnly'), 402, { licence: publicLicence(licence) });
     }
 
     let base: NametagSpec;
     try {
-        base = parseSpec(body.spec);
+        base = parseSpec(body.spec, lang);
     } catch (error) {
         if (error instanceof SpecError) return fail(error.message);
         throw error;
     }
 
     const rawRows = Array.isArray(body.rows) ? body.rows : [];
-    if (rawRows.length === 0) return fail('Senarai kosong. Tambah sekurang-kurangnya satu baris.');
-    if (rawRows.length > LIMITS.maxBatchRows) return fail(`Maksimum ${LIMITS.maxBatchRows} tag setiap muat turun.`);
+    if (rawRows.length === 0) return fail(t('api.list.empty'));
+    if (rawRows.length > LIMITS.maxBatchRows) return fail(t('api.list.max', { max: LIMITS.maxBatchRows }));
 
-    const { rows, problems } = specsFromRows(base, rawRows);
-    if (rows.length === 0) return fail(`Tiada tag yang boleh dijana. ${problems.join(' ')}`.trim());
+    const { rows, problems } = specsFromRows(base, rawRows, lang);
+    if (rows.length === 0) return fail(t('api.list.none', { problems: problems.join(' ') }).trim());
 
-    const options = parsePlateOptions(body.plate);
+    const options = { ...parsePlateOptions(body.plate), lang };
     const specs = rows.map((row) => row.spec);
 
     let plates: Awaited<ReturnType<typeof generatePlate>>[];
@@ -117,4 +122,4 @@ function plateFilename(spec: NametagSpec, index: number, count: number, extensio
     return `kakas-plat-${index}-${count}-tag-${spec.width}x${spec.height}mm.${extension}`;
 }
 
-export const GET: APIRoute = async () => json({ ok: false, error: 'Gunakan POST untuk mod plat.' }, 405);
+export const GET: APIRoute = async () => json({ ok: false, error: translate(DEFAULT_LANG, 'api.method.plate') }, 405);

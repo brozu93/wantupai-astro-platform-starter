@@ -1,0 +1,26 @@
+---
+import LicenceLookup from '../billing/LicenceLookup';
+import { langFromUrl } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<Layout title={t('account.title')} description={t('account.description')}>
+    <section class="py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-brass-400">{t('account.title')}</p>
+        <h1 class="mt-2">{t('account.heading')}</h1>
+        <p class="mt-4 max-w-2xl text-graphite-300">{t('account.lede')}</p>
+
+        <div class="mt-10 max-w-2xl">
+            <LicenceLookup lang={lang} client:load />
+        </div>
+
+        <div class="panel mt-10 max-w-2xl p-6">
+            <h2 class="text-lg font-semibold">{t('account.lostTitle')}</h2>
+            <p class="mt-2 text-sm text-graphite-300">{t('account.lostBody')}</p>
+        </div>
+    </section>
+</Layout>

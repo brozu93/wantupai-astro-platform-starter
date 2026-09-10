@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import { DEFAULT_LANG, toLang } from '../../../i18n';
+import { translate, useTranslations } from '../../../i18n/ui';
 import { attachment, fail, json, readJson, toBody } from '../../../lib/api/respond';
 import { isSubscriptionActive, publicLicence, readLicence, recordBatch } from '../../../lib/billing/licences';
 import { generateTag } from '../../../lib/nametag/generate';
@@ -18,44 +20,47 @@ export const prerender = false;
  * purchase buys one design, not a whole roster.
  */
 export const POST: APIRoute = async ({ request }) => {
-    let body: { licenceKey?: string; spec?: unknown; rows?: unknown };
+    let body: { licenceKey?: string; spec?: unknown; rows?: unknown; lang?: string };
     try {
         body = (await readJson(request, 512 * 1024)) as typeof body;
     } catch (error) {
         return fail((error as Error).message);
     }
 
+    const lang = toLang(body.lang);
+    const t = useTranslations(lang);
+
     const licence = await readLicence(String(body.licenceKey ?? ''));
-    if (!licence) return fail('Kunci lesen tidak sah.', 401);
+    if (!licence) return fail(t('api.licence.invalid'), 401);
     if (!isSubscriptionActive(licence)) {
-        return fail('Mod senarai hanya untuk langganan bulanan yang aktif.', 402, { licence: publicLicence(licence) });
+        return fail(t('api.batch.subOnly'), 402, { licence: publicLicence(licence) });
     }
 
     let base: NametagSpec;
     try {
-        base = parseSpec(body.spec);
+        base = parseSpec(body.spec, lang);
     } catch (error) {
         if (error instanceof SpecError) return fail(error.message);
         throw error;
     }
 
     const rawRows = Array.isArray(body.rows) ? body.rows : [];
-    if (rawRows.length === 0) return fail('Senarai kosong. Tambah sekurang-kurangnya satu baris.');
-    if (rawRows.length > LIMITS.maxBatchRows) return fail(`Maksimum ${LIMITS.maxBatchRows} tag setiap muat turun.`);
+    if (rawRows.length === 0) return fail(t('api.list.empty'));
+    if (rawRows.length > LIMITS.maxBatchRows) return fail(t('api.list.max', { max: LIMITS.maxBatchRows }));
 
-    const { rows, problems } = specsFromRows(base, rawRows);
+    const { rows, problems } = specsFromRows(base, rawRows, lang);
 
     const entries: ZipEntry[] = [];
     const hashes: string[] = [];
     const used = new Set<string>();
 
     for (const { index, spec } of rows) {
-        const tag = await generateTag(spec);
+        const tag = await generateTag(spec, lang);
         entries.push({ name: uniqueName(spec, index, used), data: tag.stl });
         hashes.push(specHash(spec));
     }
 
-    if (entries.length === 0) return fail(`Tiada tag yang boleh dijana. ${problems.join(' ')}`.trim());
+    if (entries.length === 0) return fail(t('api.list.none', { problems: problems.join(' ') }).trim());
 
     await recordBatch(licence, hashes);
     const zip = createZip(entries);
@@ -84,4 +89,4 @@ function uniqueName(spec: NametagSpec, index: number, used: Set<string>): string
     return name;
 }
 
-export const GET: APIRoute = async () => json({ ok: false, error: 'Gunakan POST untuk mod senarai.' }, 405);
+export const GET: APIRoute = async () => json({ ok: false, error: translate(DEFAULT_LANG, 'api.method.batch') }, 405);

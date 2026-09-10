@@ -1,3 +1,6 @@
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { translate } from '../../i18n/ui';
 import { createHash } from 'node:crypto';
 import { isFontId } from './fonts';
 import { DEFAULT_BED, PLATE_LIMITS } from './plate';
@@ -43,8 +46,8 @@ function parseLine(input: unknown, fallback: TagLine): TagLine {
  * Every number is clamped rather than rejected, so a slightly out-of-range value from an
  * older client still produces a usable tag instead of an error page.
  */
-export function parseSpec(input: unknown): NametagSpec {
-    if (typeof input !== 'object' || input === null) throw new SpecError('Spesifikasi tag tidak sah.');
+export function parseSpec(input: unknown, lang: Lang = DEFAULT_LANG): NametagSpec {
+    if (typeof input !== 'object' || input === null) throw new SpecError(translate(lang, 'api.spec.invalid'));
     const raw = input as Record<string, unknown>;
 
     const preset = findPreset(typeof raw.preset === 'string' ? raw.preset : '') ?? DEFAULT_PRESET;
@@ -54,7 +57,7 @@ export function parseSpec(input: unknown): NametagSpec {
     const rawLines = Array.isArray(raw.lines) ? raw.lines.slice(0, LIMITS.maxLines) : [];
     const lines = rawLines.map((line, i) => parseLine(line, defaults.lines[i] ?? lineFallback));
     const filled = lines.filter((line) => line.text !== '');
-    if (filled.length === 0) throw new SpecError('Isi sekurang-kurangnya satu baris teks.');
+    if (filled.length === 0) throw new SpecError(translate(lang, 'api.spec.needLine'));
 
     const frameRaw = (raw.frame ?? {}) as Record<string, unknown>;
     const magnetRaw = (raw.magnet ?? {}) as Record<string, unknown>;
@@ -139,7 +142,7 @@ export interface ParsedRow {
  * simply produces a two-line tag. A row that cannot make a valid tag is reported and skipped
  * rather than failing the whole list - one typo should not cost someone their other 59 tags.
  */
-export function specsFromRows(base: NametagSpec, rows: unknown[]): { rows: ParsedRow[]; problems: string[] } {
+export function specsFromRows(base: NametagSpec, rows: unknown[], lang: Lang = DEFAULT_LANG): { rows: ParsedRow[]; problems: string[] } {
     const parsed: ParsedRow[] = [];
     const problems: string[] = [];
 
@@ -148,10 +151,10 @@ export function specsFromRows(base: NametagSpec, rows: unknown[]): { rows: Parse
         try {
             parsed.push({
                 index,
-                spec: parseSpec({ ...base, lines: base.lines.map((line, i) => ({ ...line, text: fields[i] ?? '' })) })
+                spec: parseSpec({ ...base, lines: base.lines.map((line, i) => ({ ...line, text: fields[i] ?? '' })) }, lang)
             });
         } catch (error) {
-            problems.push(`Baris ${index + 1}: ${(error as Error).message}`);
+            problems.push(translate(lang, 'api.row.problem', { row: index + 1, message: (error as Error).message }));
         }
     }
 

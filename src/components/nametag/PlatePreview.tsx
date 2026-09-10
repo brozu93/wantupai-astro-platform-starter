@@ -1,7 +1,11 @@
+import type { Lang } from '../../i18n';
+import { DEFAULT_LANG } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
 import type { Arrangement } from '../../lib/nametag/plate';
 import type { NametagSpec, TagLayout } from '../../lib/nametag/types';
 
 interface Props {
+    lang?: Lang;
     spec: NametagSpec;
     arrangement: Arrangement;
     /** One layout per slot index; a missing entry draws an empty plate. */
@@ -22,7 +26,8 @@ const PAD = 8;
  * cues are dropped at this zoom - sixty drop shadows cost a thousand extra nodes and read as
  * mud - so the plate view is deliberately flat, and the single-tag view keeps the shading.
  */
-export default function PlatePreview({ spec, arrangement, layouts, bedWidth, bedHeight, showBed }: Props) {
+export default function PlatePreview({ spec, arrangement, layouts, bedWidth, bedHeight, showBed, lang = DEFAULT_LANG }: Props) {
+    const t = useTranslations(lang);
     const contentWidth = showBed ? Math.max(bedWidth, arrangement.width) : arrangement.width;
     const contentHeight = showBed ? Math.max(bedHeight, arrangement.height) : arrangement.height;
     const width = contentWidth + PAD * 2;
@@ -34,7 +39,11 @@ export default function PlatePreview({ spec, arrangement, layouts, bedWidth, bed
             viewBox={`0 0 ${width} ${height}`}
             className="h-auto w-full"
             role="img"
-            aria-label={`Pratonton plat ${arrangement.placed} tag dalam ${arrangement.columns} lajur dan ${arrangement.rows} baris`}
+            aria-label={t('studio.preview.plateAria', {
+                count: arrangement.placed,
+                columns: arrangement.columns,
+                rows: arrangement.rows
+            })}
         >
             <defs>
                 <linearGradient id="plate-grid-face" x1="0" y1="0" x2="0" y2="1">
