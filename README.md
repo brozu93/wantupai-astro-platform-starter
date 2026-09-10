@@ -41,6 +41,25 @@ netlify dev      # http://localhost:8888
 | `npm test` | Sahkan mesh setiap preset dan plat tertutup rapat |
 | `npm run build:fonts` | Jana semula data glif daripada fail TTF |
 
+### Menghantar ke internet
+
+Tapak ini belum dihoskan di mana-mana. `netlify.toml` sudah menetapkan segalanya, jadi tiada
+konfigurasi lagi diperlukan — dan tiada domain perlu dibeli, kerana Netlify memberi alamat
+`*.netlify.app` percuma:
+
+```bash
+npm install netlify-cli@latest -g
+netlify login
+netlify init        # sambungkan repo ini kepada tapak Netlify baharu
+netlify deploy --build --prod
+```
+
+Atau tanpa terminal: buka [app.netlify.com](https://app.netlify.com) → **Add new site** →
+**Import an existing project** → pilih repo ini. Netlify membaca `netlify.toml` dan membina
+sendiri pada setiap tolakan.
+
+Tanpa kunci Stripe, tapak berjalan dalam mod demo — lihat [`docs/billing.md`](docs/billing.md).
+
 ---
 
 ## Apa yang ada di dalam
