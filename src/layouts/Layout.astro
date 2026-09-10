@@ -1,38 +1,69 @@
 ---
-import '../../src/styles/globals.css';
+import '../styles/globals.css';
 import '@fontsource/inter/400.css';
+import '@fontsource/inter/600.css';
 import '@fontsource/inter/800.css';
 import interFont400 from '@fontsource/inter/files/inter-latin-400-normal.woff2?url';
 import interFont800 from '@fontsource/inter/files/inter-latin-800-normal.woff2?url';
 
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import { DEFAULT_LANG, HTML_LANG, LANGS, OG_LOCALE, ROUTES, langFromUrl, routeKeyOf } from '../i18n';
+import { useTranslations } from '../i18n/ui';
 
 interface Props {
     title: string;
+    description?: string;
+    /** Studio pages want the full window; content pages stay readable. */
+    wide?: boolean;
 }
 
-const { title } = Astro.props;
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const { title, description = t('meta.description'), wide = false } = Astro.props;
+
+const fullTitle = title === 'KAKAS' ? t('meta.homeTitle') : `${title} — KAKAS`;
+const origin = Astro.site ?? new URL(Astro.url.origin);
+const canonical = new URL(Astro.url.pathname, origin).href;
+
+// Each page states where its other language lives, so a search engine indexes the pair rather
+// than treating the English tree as a duplicate of the Malay one.
+const routeKey = routeKeyOf(Astro.url.pathname);
+const alternates = routeKey ? LANGS.map((code) => ({ code, href: new URL(ROUTES[routeKey][code], origin).href })) : [];
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={HTML_LANG[lang]} data-theme="kakas">
     <head>
         <meta charset="UTF-8" />
-        <title>{title}</title>
-        <meta name="viewport" content="width=device-width" />
+        <title>{fullTitle}</title>
+        <meta name="description" content={description} />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="generator" content={Astro.generator} />
+        <link rel="canonical" href={canonical} />
+        {alternates.map((alt) => <link rel="alternate" hreflang={alt.code} href={alt.href} />)}
+        {alternates.length > 0 && <link rel="alternate" hreflang="x-default" href={new URL(ROUTES[routeKey!][DEFAULT_LANG], origin).href} />}
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="preload" as="font" type="font/woff2" href={interFont400} crossorigin />
         <link rel="preload" as="font" type="font/woff2" href={interFont800} crossorigin />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="KAKAS" />
+        <meta property="og:title" content={fullTitle} />
+        <meta property="og:description" content={description} />
+        <meta property="og:locale" content={OG_LOCALE[lang]} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="theme-color" content="#0F1318" />
     </head>
-    <body class="antialiased text-white bg-[#355C7D]">
-        <div class="flex flex-col min-h-screen px-6 bg-grid-pattern sm:px-12">
-            <div class="flex flex-col w-full max-w-5xl mx-auto grow">
-                <Header />
-                <main class="grow"><slot /></main>
-                <Footer />
-            </div>
+    <body class="min-h-screen bg-graphite-900 text-base-content antialiased">
+        <div class="flex min-h-screen flex-col bg-workshop-grain">
+            <Header />
+            <main class="grow">
+                <div class:list={['mx-auto w-full px-5 sm:px-8', wide ? 'max-w-[1500px]' : 'max-w-6xl']}>
+                    <slot />
+                </div>
+            </main>
+            <Footer />
         </div>
     </body>
 </html>

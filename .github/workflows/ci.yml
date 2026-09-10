@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push supersedes the run still going for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, build and mesh check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      # The generator is the product, so the mesh check is the test suite that matters:
+      # it builds every preset, a set of awkward cases and several plates, and fails on an
+      # open edge, a repeated surface, an incomplete triangulation or an inverted normal.
+      - name: Test - nametag meshes
+        id: mesh
+        # The checker writes to .stl-samples by default, and upload-artifact's glob skips
+        # dot-directories - which silently produced an empty artifact. Write somewhere visible.
+        env:
+          STL_OUT: stl-samples
+        run: npm test
+
+      # Attach every tag this run produced - the five presets, the eleven awkward cases and
+      # the five multi-tag plates - so a reviewer can open them in a slicer instead of taking
+      # the mesh check's word for it. Uploaded on a failed mesh check too, since that is when
+      # the geometry is worth opening; skipped when an earlier step failed and no STLs were
+      # written at all. STL compresses to a fraction of its size in the artifact zip.
+      - name: Upload STLs
+        if: success() || steps.mesh.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nametag-stl
+          path: stl-samples/
+          retention-days: 7
+          # Loud, so an upload that quietly finds nothing can never pass as green again.
+          if-no-files-found: error

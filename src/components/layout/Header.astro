@@ -1,0 +1,70 @@
+---
+import { LANGS, LANG_LABEL, LANG_NAME, isCurrentPath, langFromUrl, path, swapLang } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Logo from '../ui/Logo.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+const here = Astro.url.pathname;
+
+const navItems = [
+    { label: t('nav.apps'), href: path('apps', lang) },
+    { label: t('nav.nametag'), href: path('nametag', lang) },
+    { label: t('nav.pricing'), href: path('pricing', lang) },
+    { label: t('nav.guide'), href: path('guide', lang) },
+    { label: t('nav.account'), href: path('account', lang) }
+];
+---
+
+<header class="sticky top-0 z-30 border-b border-white/10 bg-graphite-900/85 backdrop-blur">
+    <nav class="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3 sm:px-8" aria-label={t('nav.aria')}>
+        <a href={path('home', lang)} class="shrink-0 text-base-content hover:opacity-80" aria-label={t('nav.logoAria')}>
+            <Logo height={30} />
+        </a>
+
+        <ul class="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
+            {
+                navItems.map((item) => (
+                    <li>
+                        <a
+                            href={item.href}
+                            aria-current={isCurrentPath(here, item.href) ? 'page' : undefined}
+                            class:list={[
+                                'inline-block rounded-md px-2.5 py-1.5 transition',
+                                isCurrentPath(here, item.href) ? 'bg-white/10 font-semibold text-base-content' : 'text-graphite-200 hover:bg-white/5'
+                            ]}
+                        >
+                            {item.label}
+                        </a>
+                    </li>
+                ))
+            }
+        </ul>
+
+        <div class="ml-auto flex items-center gap-3">
+            {/* Links rather than a dropdown: each language of this page gets a real URL a reader
+                can bookmark or send to someone, and it works with JavaScript switched off. */}
+            <div class="flex items-center rounded-md border border-white/15 p-0.5 text-xs" role="group" aria-label={t('lang.aria')}>
+                {
+                    LANGS.map((code) => (
+                        <a
+                            href={swapLang(here, code)}
+                            hreflang={code}
+                            lang={code}
+                            aria-current={code === lang ? 'true' : undefined}
+                            title={t('lang.switchTo', { name: LANG_NAME[code] })}
+                            class:list={[
+                                'rounded px-2 py-1 font-semibold tracking-wide transition',
+                                code === lang ? 'bg-white/15 text-base-content' : 'text-graphite-300 hover:bg-white/5 hover:text-base-content'
+                            ]}
+                        >
+                            {LANG_LABEL[code]}
+                        </a>
+                    ))
+                }
+            </div>
+
+            <a href={path('nametag', lang)} class="btn btn-primary btn-sm">{t('nav.openStudio')}</a>
+        </div>
+    </nav>
+</header>

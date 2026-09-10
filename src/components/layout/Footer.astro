@@ -1,0 +1,67 @@
+---
+import { langFromUrl, path } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Logo from '../ui/Logo.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+const year = new Date().getFullYear();
+
+const columns = [
+    {
+        title: t('footer.tools'),
+        links: [
+            { label: t('nav.nametag'), href: path('nametag', lang) },
+            { label: t('footer.allApps'), href: path('apps', lang) },
+            { label: t('footer.printGuide'), href: path('guide', lang) }
+        ]
+    },
+    {
+        title: t('footer.account'),
+        links: [
+            { label: t('nav.pricing'), href: path('pricing', lang) },
+            { label: t('footer.checkLicence'), href: path('account', lang) }
+        ]
+    },
+    {
+        title: t('footer.official'),
+        links: [
+            { label: t('footer.terms'), href: path('terms', lang) },
+            { label: t('footer.privacy'), href: path('privacy', lang) }
+        ]
+    }
+];
+---
+
+<footer class="mt-24 border-t border-white/10 bg-graphite-950/60">
+    <div class="mx-auto grid max-w-[1500px] gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.5fr_repeat(3,1fr)]">
+        <div>
+            <Logo height={28} />
+            <p class="mt-4 max-w-xs text-sm text-graphite-300">{t('footer.tagline')}</p>
+        </div>
+
+        {
+            columns.map((column) => (
+                <div>
+                    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-graphite-400">{column.title}</h2>
+                    <ul class="space-y-2 text-sm">
+                        {column.links.map((link) => (
+                            <li>
+                                <a href={link.href} class="text-graphite-200 hover:text-brass-300">
+                                    {link.label}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ))
+        }
+    </div>
+
+    <div class="mx-auto max-w-[1500px] space-y-2 border-t border-white/10 px-5 py-6 text-xs text-graphite-400 sm:px-8">
+        <p>
+            {t('footer.disclaimerBefore')}<strong class="font-semibold text-graphite-300">{t('footer.disclaimerStrong')}</strong>{t('footer.disclaimerAfter')}
+        </p>
+        <p>{t('footer.fonts', { year })}</p>
+    </div>
+</footer>

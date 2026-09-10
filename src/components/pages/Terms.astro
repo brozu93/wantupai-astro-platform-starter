@@ -1,0 +1,45 @@
+---
+import { langFromUrl } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const sections = [1, 2, 3, 4] as const;
+const later = [6, 7, 8] as const;
+---
+
+<Layout title={t('terms.title')} description={t('terms.description')}>
+    <section class="prose-links max-w-prose py-14">
+        <h1>{t('terms.heading')}</h1>
+        <p class="mt-2 text-sm text-graphite-400">{t('terms.updated')}</p>
+
+        {
+            sections.map((n) => (
+                <Fragment>
+                    <h2 class="mt-10">{t(`terms.s${n}.h` as 'terms.s1.h')}</h2>
+                    <p class="mt-3 text-graphite-300">{t(`terms.s${n}.p` as 'terms.s1.p')}</p>
+                </Fragment>
+            ))
+        }
+
+        <h2 class="mt-10">{t('terms.s5.h')}</h2>
+        <p class="mt-3 text-graphite-300">{t('terms.s5.p')}</p>
+        <ul class="mt-3 list-disc space-y-2 pl-5 text-graphite-300">
+            <li>{t('terms.s5.li1')}</li>
+            <li>{t('terms.s5.li2')}</li>
+            <li>{t('terms.s5.li3')}</li>
+        </ul>
+        <p class="mt-3 text-graphite-300">{t('terms.s5.after')}</p>
+
+        {
+            later.map((n) => (
+                <Fragment>
+                    <h2 class="mt-10">{t(`terms.s${n}.h` as 'terms.s6.h')}</h2>
+                    <p class="mt-3 text-graphite-300">{t(`terms.s${n}.p` as 'terms.s6.p')}</p>
+                </Fragment>
+            ))
+        }
+    </section>
+</Layout>

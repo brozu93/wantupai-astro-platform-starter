@@ -1,0 +1,24 @@
+Hak Cipta Terpelihara / All Rights Reserved
+
+Copyright (c) 2026 KAKAS
+
+Perisian ini dan kod sumbernya adalah harta persendirian. Tiada kebenaran diberikan
+untuk menyalin, mengubah suai, mengedar atau menggunakan mana-mana bahagian kod ini
+tanpa kebenaran bertulis daripada pemilik hak cipta.
+
+This software and its source code are proprietary. No permission is granted to copy,
+modify, distribute or use any part of this code without the prior written permission
+of the copyright holder.
+
+PENGECUALIAN / EXCEPTIONS
+
+Data fon di bawah src/lib/nametag/fonts/ diterbitkan daripada Roboto dan Roboto
+Condensed, yang dilesenkan di bawah Apache License 2.0. Lesen tersebut kekal terpakai
+kepada data itu. Lihat src/lib/nametag/fonts/LICENSE-FONTS.md.
+
+Font data under src/lib/nametag/fonts/ is derived from Roboto and Roboto Condensed,
+licensed under the Apache License 2.0. That licence continues to apply to that data.
+See src/lib/nametag/fonts/LICENSE-FONTS.md.
+
+Kebergantungan pihak ketiga dalam package.json kekal di bawah lesen masing-masing.
+Third-party dependencies listed in package.json remain under their own licences.

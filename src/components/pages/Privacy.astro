@@ -1,0 +1,32 @@
+---
+import { langFromUrl } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<Layout title={t('privacy.title')} description={t('privacy.description')}>
+    <section class="prose-links max-w-prose py-14">
+        <h1>{t('privacy.heading')}</h1>
+        <p class="mt-2 text-sm text-graphite-400">{t('privacy.updated')}</p>
+
+        <h2 class="mt-10">{t('privacy.keptTitle')}</h2>
+        <ul class="mt-3 list-disc space-y-2 pl-5 text-graphite-300">
+            <li><strong class="text-base-content">{t('privacy.kept1Strong')}</strong>{t('privacy.kept1')}</li>
+            <li><strong class="text-base-content">{t('privacy.kept2Strong')}</strong>{t('privacy.kept2')}</li>
+            <li><strong class="text-base-content">{t('privacy.kept3Strong')}</strong>{t('privacy.kept3')}</li>
+        </ul>
+
+        <h2 class="mt-10">{t('privacy.notKeptTitle')}</h2>
+        <p class="mt-3 text-graphite-300">{t('privacy.notKept1')}</p>
+        <p class="mt-3 text-graphite-300">{t('privacy.notKept2')}</p>
+
+        <h2 class="mt-10">{t('privacy.browserTitle')}</h2>
+        <p class="mt-3 text-graphite-300">{t('privacy.browserBody')}</p>
+
+        <h2 class="mt-10">{t('privacy.deleteTitle')}</h2>
+        <p class="mt-3 text-graphite-300">{t('privacy.deleteBody')}</p>
+    </section>
+</Layout>

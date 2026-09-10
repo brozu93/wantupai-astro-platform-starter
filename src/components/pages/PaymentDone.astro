@@ -1,0 +1,21 @@
+---
+import ClaimLicence from '../billing/ClaimLicence';
+import { langFromUrl } from '../../i18n';
+import { useTranslations } from '../../i18n/ui';
+import Layout from '../../layouts/Layout.astro';
+
+const lang = langFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<Layout title={t('paid.title')} description={t('paid.description')}>
+    <section class="py-14">
+        <p class="text-xs font-semibold uppercase tracking-widest text-success">{t('paid.eyebrow')}</p>
+        <h1 class="mt-2">{t('paid.heading')}</h1>
+        <p class="mt-4 max-w-2xl text-graphite-300">{t('paid.lede')}</p>
+
+        <div class="mt-8 max-w-2xl">
+            <ClaimLicence lang={lang} client:load />
+        </div>
+    </section>
+</Layout>
